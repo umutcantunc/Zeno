@@ -1,28 +1,68 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
-import { SYSTEM_PROMPT } from '@/lib/systemPrompt'
+import { getSystemPrompt, type PersonalityMode, type UserProfile } from '@/lib/systemPrompt'
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, conversationId, history = [] } = await request.json()
-
-    const anthropic = new Anthropic({
-      apiKey: process.env.ZENO_ANTHROPIC_KEY!,
-    })
+    const {
+      message,
+      conversationId,
+      history = [],
+      mode = 'zeno',
+      profile,
+    }: {
+      message: string
+      conversationId?: string
+      history: { role: string; content: string }[]
+      mode?: PersonalityMode
+      profile?: UserProfile
+    } = await request.json()
 
     if (!message?.trim()) {
       return NextResponse.json({ error: 'Mesaj boş olamaz' }, { status: 400 })
     }
 
+    const anthropic = new Anthropic({ apiKey: process.env.ZENO_ANTHROPIC_KEY! })
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    // Oturum açmış kullanıcı varsa mesajı kaydet
-    let activeConversationId = conversationId
+    // Kullanıcı profili varsa DB'den çek (profile parametre gönderilmemişse)
+    let resolvedProfile: UserProfile | undefined = profile
+    if (user && !resolvedProfile) {
+      const { data: dbUser } = await supabase
+        .from('users')
+        .select('full_name, age, gender, country, personality_mode')
+        .eq('id', user.id)
+        .single()
+      if (dbUser) {
+        resolvedProfile = {
+          name: dbUser.full_name,
+          age: dbUser.age,
+          gender: dbUser.gender,
+          country: dbUser.country,
+        }
+      }
+    }
 
+    // Kişilik modunu belirle: parametreden > DB'den > varsayılan
+    let resolvedMode: PersonalityMode = mode
+    if (user && mode === 'zeno') {
+      const { data: dbUser } = await supabase
+        .from('users')
+        .select('personality_mode')
+        .eq('id', user.id)
+        .single()
+      if (dbUser?.personality_mode) {
+        resolvedMode = dbUser.personality_mode as PersonalityMode
+      }
+    }
+
+    const systemPrompt = getSystemPrompt(resolvedMode, resolvedProfile)
+
+    // Conversation yönetimi
+    let activeConversationId = conversationId
     if (user) {
-      // Conversation yoksa oluştur
       if (!activeConversationId) {
         const { data: conv } = await supabase
           .from('conversations')
@@ -31,9 +71,7 @@ export async function POST(request: NextRequest) {
           .single()
         activeConversationId = conv?.id
       }
-
       if (activeConversationId) {
-        // Kullanıcı mesajını kaydet
         await supabase.from('messages').insert({
           conversation_id: activeConversationId,
           role: 'user',
@@ -42,26 +80,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Geçmiş mesajları Anthropic formatına çevir
     const messages: Anthropic.MessageParam[] = [
-      ...history.map((m: { role: string; content: string }) => ({
+      ...history.map((m) => ({
         role: m.role as 'user' | 'assistant',
         content: m.content,
       })),
       { role: 'user', content: message },
     ]
 
-    // Claude'u çağır
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
-      system: SYSTEM_PROMPT,
+      system: systemPrompt,
       messages,
     })
 
     const reply = response.content[0].type === 'text' ? response.content[0].text : ''
 
-    // Assistant cevabını kaydet
     if (user && activeConversationId) {
       await supabase.from('messages').insert({
         conversation_id: activeConversationId,
@@ -70,10 +105,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    return NextResponse.json({
-      reply,
-      conversationId: activeConversationId,
-    })
+    return NextResponse.json({ reply, conversationId: activeConversationId })
   } catch (error) {
     console.error('[chat/route] hata:', error)
     return NextResponse.json({ error: 'Bir sorun oluştu, lütfen tekrar dene.' }, { status: 500 })

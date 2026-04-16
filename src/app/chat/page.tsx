@@ -2,9 +2,11 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
+import type { PersonalityMode } from '@/lib/systemPrompt'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -12,6 +14,22 @@ interface Message {
 }
 
 const QUICK_REPLIES = ['İş Yükü', 'Odaklanma Sorunu', 'Zaman Baskısı', 'Sadece Yorgunum']
+
+const MODE_OPTIONS: { id: PersonalityMode; emoji: string; label: string }[] = [
+  { id: 'zeno',       emoji: '⚖️', label: 'Zeno' },
+  { id: 'dost',       emoji: '☕', label: 'Dost' },
+  { id: 'koc',        emoji: '🎯', label: 'Koç' },
+  { id: 'bilge',      emoji: '🌙', label: 'Bilge' },
+  { id: 'dinleyici',  emoji: '🌊', label: 'Dinleyici' },
+]
+
+const MODE_OPENINGS: Record<PersonalityMode, string> = {
+  zeno:       'Bugün zihnini en çok ne yoruyor?',
+  dost:       'Naber, bugün nasılsın gerçekten?',
+  koc:        'Bugün hangi konuda netlik arıyorsun?',
+  bilge:      'Seni buraya getiren ne?',
+  dinleyici:  'Buradayım. Ne taşıyorsun bugün?',
+}
 
 const OPENING_MESSAGE: Message = {
   role: 'assistant',
@@ -66,6 +84,8 @@ export default function ChatPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
+  const [activeMode, setActiveMode] = useState<PersonalityMode>('zeno')
+  const [showModeMenu, setShowModeMenu] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const assistantMessageCount = useRef(0)
 
@@ -73,10 +93,18 @@ export default function ChatPage() {
     const supabase = createClient()
 
     // İlk yüklemede mevcut session'ı oku
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setIsLoggedIn(!!session?.user)
       setUserEmail(session?.user?.email ?? null)
       setUserId(session?.user?.id ?? null)
+      if (session?.user) {
+        const { data } = await supabase
+          .from('users')
+          .select('personality_mode')
+          .eq('id', session.user.id)
+          .single()
+        if (data?.personality_mode) setActiveMode(data.personality_mode as PersonalityMode)
+      }
     })
 
     // Session değişikliklerini dinle (login, logout, token refresh)
@@ -92,6 +120,24 @@ export default function ChatPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading, showMoodWidget])
+
+  useEffect(() => {
+    if (!showModeMenu) return
+    const close = () => setShowModeMenu(false)
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [showModeMenu])
+
+  function handleModeChange(mode: PersonalityMode) {
+    setActiveMode(mode)
+    setShowModeMenu(false)
+    // Sohbeti sıfırla, yeni modun açılış mesajını göster
+    setMessages([{ role: 'assistant', content: MODE_OPENINGS[mode] }])
+    setShowQuickReplies(true)
+    setShowMoodWidget(false)
+    setConversationId(null)
+    assistantMessageCount.current = 0
+  }
 
   async function handleSignOut() {
     await createClient().auth.signOut()
@@ -154,7 +200,7 @@ export default function ChatPage() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, conversationId, history }),
+        body: JSON.stringify({ message: text, conversationId, history, mode: activeMode }),
       })
 
       const data = await res.json()
@@ -188,29 +234,67 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col h-screen bg-slate-950">
       {/* Header */}
-      <header className="flex items-center gap-3 px-5 py-4 border-b border-slate-800 shrink-0 bg-slate-950/80 backdrop-blur-sm">
-        <div className="w-9 h-9 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-purple-900/40">
+      <header className="flex items-center gap-3 px-4 py-3 border-b border-slate-800 shrink-0 bg-slate-950/80 backdrop-blur-sm">
+        <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-purple-900/40 shrink-0">
           Z
         </div>
-        <div className="flex-1">
-          <p className="text-white font-semibold text-sm leading-none">Zeno</p>
-          <p className="text-slate-500 text-xs mt-0.5">Zihin Koçu · AI</p>
+
+        {/* Mod seçici */}
+        <div className="relative">
+          <button
+            onClick={() => setShowModeMenu((v) => !v)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
+          >
+            <span className="text-sm">{MODE_OPTIONS.find((m) => m.id === activeMode)?.emoji}</span>
+            <span className="text-xs text-slate-200 font-medium">{MODE_OPTIONS.find((m) => m.id === activeMode)?.label}</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-slate-400">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          {showModeMenu && (
+            <div className="absolute top-full left-0 mt-1.5 bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-50 min-w-[160px] overflow-hidden">
+              {MODE_OPTIONS.map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => handleModeChange(m.id)}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm transition-colors ${
+                    activeMode === m.id
+                      ? 'bg-purple-600/30 text-white'
+                      : 'text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  <span>{m.emoji}</span>
+                  <span className="font-medium">{m.label}</span>
+                  {activeMode === m.id && <span className="ml-auto text-purple-400 text-xs">✓</span>}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
+
+        <div className="flex-1" />
+
         {isLoggedIn ? (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400 hidden sm:block truncate max-w-[140px]">{userEmail}</span>
+          <div className="flex items-center gap-1">
+            <Link
+              href="/settings"
+              className="p-2 text-slate-500 hover:text-slate-300 hover:bg-slate-800 rounded-lg transition-colors"
+              title="Ayarlar"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+            </Link>
+            <span className="text-xs text-slate-500 hidden sm:block truncate max-w-[120px]">{userEmail}</span>
             <button
               onClick={handleSignOut}
-              className="text-xs text-slate-500 hover:text-slate-300 transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-800 whitespace-nowrap"
+              className="text-xs text-slate-500 hover:text-slate-300 transition-colors px-2.5 py-1.5 rounded-lg hover:bg-slate-800"
             >
               Çıkış
             </button>
           </div>
         ) : (
-          <a
-            href="/auth/login"
-            className="text-xs text-purple-400 hover:text-purple-300 transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-800"
-          >
+          <a href="/auth/login" className="text-xs text-purple-400 hover:text-purple-300 transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-800">
             Giriş Yap
           </a>
         )}
