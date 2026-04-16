@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import BottomNav from '@/components/BottomNav'
 
 interface MemoryItem {
   id: string
@@ -110,9 +111,9 @@ export default function MemoryPage() {
   }, {})
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className="min-h-screen bg-slate-950 text-white pb-24">
       <header className="border-b border-slate-800 px-5 py-4 flex items-center gap-4">
-        <Link href="/settings" className="text-slate-400 hover:text-white transition-colors text-sm">← Ayarlara dön</Link>
+        <Link href="/dashboard" className="text-slate-400 hover:text-white transition-colors text-sm">← Ana Sayfa</Link>
         <h1 className="text-base font-semibold text-white">Zeno Hafızası</h1>
         <div className="flex-1" />
         <button
@@ -125,10 +126,16 @@ export default function MemoryPage() {
 
       <div className="max-w-2xl mx-auto px-5 py-8">
         {/* Açıklama */}
-        <div className="bg-purple-500/10 border border-purple-500/20 rounded-2xl p-4 mb-8">
-          <p className="text-purple-200 text-sm leading-relaxed">
-            Zeno sohbet boyunca senin hakkında bazı şeyler öğrenir. Bu sayfa, o bilgileri görmeni, düzenlemeni ve silmeni sağlar.
-          </p>
+        <div className="bg-purple-500/10 border border-purple-500/20 rounded-2xl p-4 mb-6">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">🧠</span>
+            <div>
+              <p className="text-purple-200 text-sm font-medium mb-1">Zeno seni şimdiye kadar şunları öğrendi</p>
+              <p className="text-purple-300/70 text-xs leading-relaxed">
+                Sohbet boyunca öğrenilen bilgiler burada toplanır. İstediğin zaman düzenleyebilir veya silebilirsin.
+              </p>
+            </div>
+          </div>
         </div>
 
         {loading && (
@@ -182,10 +189,22 @@ export default function MemoryPage() {
         )}
 
         {!loading && items.length === 0 && (
-          <div className="text-center py-16 space-y-3">
-            <p className="text-4xl">🧠</p>
-            <p className="text-slate-400 text-sm">Zeno henüz bir şey kaydetmedi.</p>
-            <p className="text-slate-600 text-xs">Sohbet ettikçe hafıza dolmaya başlar.</p>
+          <div className="text-center py-16 space-y-4">
+            <div className="w-16 h-16 bg-slate-800 border border-slate-700 rounded-2xl flex items-center justify-center mx-auto">
+              <span className="text-3xl">🧠</span>
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-slate-300 text-sm font-medium">Henüz bir şey öğrenmedi</p>
+              <p className="text-slate-600 text-xs max-w-[240px] mx-auto leading-relaxed">
+                Zeno ile sohbet ettikçe seni tanımaya başlar ve öğrendiklerini buraya kaydeder.
+              </p>
+            </div>
+            <a
+              href="/chat"
+              className="inline-block px-5 py-2.5 bg-purple-600/20 border border-purple-500/30 text-purple-300 text-sm font-medium rounded-xl hover:bg-purple-600/30 transition-colors"
+            >
+              Sohbet başlat →
+            </a>
           </div>
         )}
 
@@ -268,6 +287,7 @@ export default function MemoryPage() {
           </div>
         ))}
       </div>
+      <BottomNav />
     </div>
   )
 }

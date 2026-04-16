@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import type { PersonalityMode } from '@/lib/systemPrompt'
+import BottomNav from '@/components/BottomNav'
 
 const MODES: { id: PersonalityMode; emoji: string; label: string; desc: string; opening: string }[] = [
   {
@@ -56,6 +57,10 @@ export default function SettingsPage() {
   const [gender, setGender] = useState('')
   const [country, setCountry] = useState('TR')
   const [selectedMode, setSelectedMode] = useState<PersonalityMode>('zeno')
+  const [notifWeekly, setNotifWeekly] = useState(false)
+  const [notifTips, setNotifTips] = useState(true)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteInput, setDeleteInput] = useState('')
 
   useEffect(() => {
     const supabase = createClient()
@@ -105,10 +110,10 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className="min-h-screen bg-slate-950 text-white pb-24">
       {/* Header */}
       <header className="border-b border-slate-800 px-5 py-4 flex items-center gap-4">
-        <Link href="/chat" className="text-slate-400 hover:text-white transition-colors text-sm">← Sohbete dön</Link>
+        <Link href="/dashboard" className="text-slate-400 hover:text-white transition-colors text-sm">← Ana Sayfa</Link>
         <h1 className="text-base font-semibold text-white">Ayarlar</h1>
         <div className="flex-1" />
         <button
@@ -237,7 +242,115 @@ export default function SettingsPage() {
           </div>
         </section>
 
+        {/* Bildirimler */}
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Bildirimler</h2>
+          <div className="bg-slate-800/60 border border-slate-700 rounded-2xl divide-y divide-slate-700">
+            {/* Haftalık özet */}
+            <div className="flex items-center justify-between p-4">
+              <div>
+                <p className="text-white text-sm font-medium">Haftalık Özet</p>
+                <p className="text-slate-500 text-xs mt-0.5">Her hafta ruh hali özetin gönderilsin</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setNotifWeekly((v) => !v)}
+                className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${notifWeekly ? 'bg-purple-600' : 'bg-slate-600'}`}
+              >
+                <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${notifWeekly ? 'left-6' : 'left-1'}`} />
+              </button>
+            </div>
+            {/* Günlük ipuçları */}
+            <div className="flex items-center justify-between p-4">
+              <div>
+                <p className="text-white text-sm font-medium">Günlük İpuçları</p>
+                <p className="text-slate-500 text-xs mt-0.5">Stoacı alıntı ve kişisel gelişim önerileri</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setNotifTips((v) => !v)}
+                className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${notifTips ? 'bg-purple-600' : 'bg-slate-600'}`}
+              >
+                <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${notifTips ? 'left-6' : 'left-1'}`} />
+              </button>
+            </div>
+          </div>
+          <p className="text-slate-600 text-xs px-1">Bildirimler yakında aktif olacak.</p>
+        </section>
+
+        {/* Hesap */}
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Hesap</h2>
+          <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-4">
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(true)}
+              className="w-full flex items-center gap-3 text-red-400 hover:text-red-300 transition-colors"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+              </svg>
+              <div className="text-left">
+                <p className="text-sm font-medium">Hesabımı Sil</p>
+                <p className="text-xs text-red-500/70 mt-0.5">Tüm veriler kalıcı olarak silinir</p>
+              </div>
+            </button>
+          </div>
+        </section>
+
       </div>
+
+      {/* Hesap silme onay modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center px-5">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-sm space-y-4">
+            <div className="text-center space-y-2">
+              <div className="w-12 h-12 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center mx-auto">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-400">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </div>
+              <h3 className="text-white font-semibold text-base">Hesabını silmek istediğinden emin misin?</h3>
+              <p className="text-slate-400 text-xs leading-relaxed">
+                Tüm sohbetlerin, hafıza bilgilerin ve ruh hali geçmişin kalıcı olarak silinecek. Bu işlem geri alınamaz.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-slate-400 text-xs">Onaylamak için <span className="text-red-400 font-mono">SİL</span> yaz:</p>
+              <input
+                type="text"
+                value={deleteInput}
+                onChange={(e) => setDeleteInput(e.target.value)}
+                placeholder="SİL"
+                className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2.5 text-white placeholder-slate-600 text-sm outline-none focus:border-red-500 transition-colors"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setShowDeleteConfirm(false); setDeleteInput('') }}
+                className="flex-1 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium rounded-xl transition-colors"
+              >
+                İptal
+              </button>
+              <button
+                disabled={deleteInput !== 'SİL'}
+                className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-colors"
+                onClick={() => {
+                  // TODO: gerçek silme işlemi
+                  alert('Hesap silme özelliği yakında aktif olacak.')
+                  setShowDeleteConfirm(false)
+                  setDeleteInput('')
+                }}
+              >
+                Hesabı Sil
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <BottomNav />
     </div>
   )
 }
