@@ -7,41 +7,56 @@ import { createClient } from '@/lib/supabase/client'
 import type { PersonalityMode } from '@/lib/systemPrompt'
 import BottomNav from '@/components/BottomNav'
 
-const MODES: { id: PersonalityMode; emoji: string; label: string; desc: string; opening: string }[] = [
+const MODES: {
+  id: PersonalityMode
+  emoji: string
+  label: string
+  desc1: string
+  desc2: string
+  activeBorder: string
+  activeBg: string
+  btnBg: string
+  badgeStyle: string
+}[] = [
   {
-    id: 'zeno',
-    emoji: '⚖️',
-    label: 'Zeno',
-    desc: 'Dengeli, analitik empati ile stoacı bilgelik. Ne çok soğuk ne çok sıcak.',
-    opening: '"Bugün zihnini en çok ne yoruyor?"',
+    id: 'zeno', emoji: '⚖️', label: 'Zeno',
+    desc1: 'Dengeli, analitik, seni tanıyan.',
+    desc2: 'Stoacı bilgelik ile empatiyi dengeler.',
+    activeBorder: 'border-purple-500', activeBg: 'bg-purple-600/15',
+    btnBg: 'bg-purple-600 hover:bg-purple-500',
+    badgeStyle: 'bg-purple-500/30 text-purple-300',
   },
   {
-    id: 'dost',
-    emoji: '☕',
-    label: 'Dost',
-    desc: 'Samimi, rahat ama sınırını biliyor. Sevinçte gerçekten sevinir, üzüntüde yanında oturur.',
-    opening: '"Naber, bugün nasılsın gerçekten?"',
+    id: 'dost', emoji: '☕', label: 'Dost',
+    desc1: 'Samimi, sıcak, sevinçte sevinir.',
+    desc2: 'Üzüntüde sessizce yanında oturur.',
+    activeBorder: 'border-amber-500', activeBg: 'bg-amber-600/15',
+    btnBg: 'bg-amber-600 hover:bg-amber-500',
+    badgeStyle: 'bg-amber-500/30 text-amber-300',
   },
   {
-    id: 'koc',
-    emoji: '🎯',
-    label: 'Koç',
-    desc: 'Direkt, aksiyona odaklı. Şımartmaz, netlik verir. Asıl odak: ilerleme.',
-    opening: '"Bugün hangi konuda netlik arıyorsun?"',
+    id: 'koc', emoji: '🎯', label: 'Koç',
+    desc1: 'Direkt, aksiyona odaklı, şımartmaz.',
+    desc2: 'Netlik verir, ilerlemeye odaklar.',
+    activeBorder: 'border-blue-500', activeBg: 'bg-blue-700/15',
+    btnBg: 'bg-blue-700 hover:bg-blue-600',
+    badgeStyle: 'bg-blue-500/30 text-blue-300',
   },
   {
-    id: 'bilge',
-    emoji: '🌙',
-    label: 'Bilge',
-    desc: 'Az konuşur, derin sorar. Cevap vermez, soruyla aydınlatır. Sabırlı.',
-    opening: '"Seni buraya getiren ne?"',
+    id: 'bilge', emoji: '🌙', label: 'Bilge',
+    desc1: 'Az konuşur, derin sorar.',
+    desc2: 'Cevap vermez, soruyla aydınlatır.',
+    activeBorder: 'border-emerald-600', activeBg: 'bg-emerald-900/20',
+    btnBg: 'bg-emerald-800 hover:bg-emerald-700',
+    badgeStyle: 'bg-emerald-500/30 text-emerald-300',
   },
   {
-    id: 'dinleyici',
-    emoji: '🌊',
-    label: 'Dinleyici',
-    desc: 'Tavsiye vermez, sadece duyar ve doğrular. Asla çözüm üretmez, sadece var olur.',
-    opening: '"Buradayım. Ne taşıyorsun bugün?"',
+    id: 'dinleyici', emoji: '🌊', label: 'Dinleyici',
+    desc1: 'Tavsiye vermez, sadece duyar ve doğrular.',
+    desc2: 'Çözüm üretmez, sadece var olur.',
+    activeBorder: 'border-rose-600', activeBg: 'bg-rose-900/20',
+    btnBg: 'bg-rose-800 hover:bg-rose-700',
+    badgeStyle: 'bg-rose-500/30 text-rose-300',
   },
 ]
 
@@ -99,6 +114,15 @@ export default function SettingsPage() {
     setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
+  }
+
+  async function handleModeSelect(mode: PersonalityMode) {
+    setSelectedMode(mode)
+    if (!userId) return
+    const supabase = createClient()
+    await supabase.from('users').update({ personality_mode: mode }).eq('id', userId)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 1800)
   }
 
   if (loading) {
@@ -193,35 +217,47 @@ export default function SettingsPage() {
         <section className="space-y-4">
           <div>
             <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Zeno Kişilik Modu</h2>
-            <p className="text-slate-500 text-xs mt-1">Varsayılan mod — her sohbette bu kimlikle karşılaşırsın.</p>
+            <p className="text-slate-500 text-xs mt-1">Seçtiğin mod her sohbette aktif olur. Anında kaydedilir.</p>
           </div>
           <div className="space-y-3">
-            {MODES.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => setSelectedMode(m.id)}
-                className={`w-full text-left p-4 rounded-2xl border transition-all duration-150 ${
-                  selectedMode === m.id
-                    ? 'bg-purple-600/20 border-purple-500 ring-1 ring-purple-500/50'
-                    : 'bg-slate-800/60 border-slate-700 hover:border-slate-600'
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl mt-0.5">{m.emoji}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-white text-sm">{m.label}</span>
-                      {selectedMode === m.id && (
-                        <span className="text-xs bg-purple-500/30 text-purple-300 px-2 py-0.5 rounded-full">Seçili</span>
-                      )}
+            {MODES.map((m) => {
+              const isActive = selectedMode === m.id
+              return (
+                <div
+                  key={m.id}
+                  className={`p-4 rounded-2xl border transition-all duration-200 ${
+                    isActive
+                      ? `${m.activeBg} ${m.activeBorder} ring-1 ring-offset-0`
+                      : 'bg-slate-800/60 border-slate-700'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl shrink-0">{m.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="font-semibold text-white text-sm">{m.label}</span>
+                        {isActive && (
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${m.badgeStyle}`}>
+                            Aktif
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-slate-300 text-xs leading-relaxed">{m.desc1}</p>
+                      <p className="text-slate-500 text-xs leading-relaxed">{m.desc2}</p>
                     </div>
-                    <p className="text-slate-400 text-xs mt-0.5 leading-relaxed">{m.desc}</p>
-                    <p className="text-slate-500 text-xs mt-1.5 italic">{m.opening}</p>
+                    {!isActive && (
+                      <button
+                        type="button"
+                        onClick={() => handleModeSelect(m.id)}
+                        className={`shrink-0 px-3 py-1.5 text-xs font-semibold text-white rounded-lg transition-colors ${m.btnBg}`}
+                      >
+                        Seç
+                      </button>
+                    )}
                   </div>
                 </div>
-              </button>
-            ))}
+              )
+            })}
           </div>
         </section>
 

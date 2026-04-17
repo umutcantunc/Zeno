@@ -27,7 +27,6 @@ export async function POST(request: NextRequest) {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    // Kullanıcı profili varsa DB'den çek (profile parametre gönderilmemişse)
     let resolvedProfile: UserProfile | undefined = profile
     if (user && !resolvedProfile) {
       const { data: dbUser } = await supabase
@@ -45,7 +44,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Kişilik modunu belirle: parametreden > DB'den > varsayılan
     let resolvedMode: PersonalityMode = mode
     if (user && mode === 'zeno') {
       const { data: dbUser } = await supabase
@@ -60,13 +58,13 @@ export async function POST(request: NextRequest) {
 
     const systemPrompt = getSystemPrompt(resolvedMode, resolvedProfile)
 
-    // Conversation yönetimi
     let activeConversationId = conversationId
     if (user) {
       if (!activeConversationId) {
+        const title = message.slice(0, 40).trim()
         const { data: conv } = await supabase
           .from('conversations')
-          .insert({ user_id: user.id, title: message.slice(0, 60) })
+          .insert({ user_id: user.id, title, mode: resolvedMode })
           .select('id')
           .single()
         activeConversationId = conv?.id

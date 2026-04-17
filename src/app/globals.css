@@ -25,3 +25,28 @@ body {
     text-wrap: balance;
   }
 }
+
+@keyframes waveSweep {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0.5;
+  }
+  70% {
+    opacity: 0.3;
+  }
+  100% {
+    transform: translateY(100vh);
+    opacity: 0;
+  }
+}
+
+.wave-sweep {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 9999;
+  animation: waveSweep 0.8s ease-out forwards;
+}
