@@ -22,12 +22,12 @@ const QUICK_REPLIES: Record<PersonalityMode, string[]> = {
   dinleyici: ['Sadece dinle beni', 'Çok ağır hissediyorum', 'Anlatmam lazım', 'Sessizce burada ol'],
 }
 
-const MODE_OPTIONS: { id: PersonalityMode; emoji: string; label: string }[] = [
-  { id: 'zeno',       emoji: '⚖️', label: 'Zeno' },
-  { id: 'dost',       emoji: '☕', label: 'Dost' },
-  { id: 'koc',        emoji: '🎯', label: 'Koç' },
-  { id: 'bilge',      emoji: '🌙', label: 'Bilge' },
-  { id: 'dinleyici',  emoji: '🌊', label: 'Dinleyici' },
+const MODE_OPTIONS: { id: PersonalityMode; emoji: string; label: string; desc: string }[] = [
+  { id: 'zeno',       emoji: '⚖️', label: 'Zeno',      desc: 'Dengeli, analitik, stoacı bilgelik.' },
+  { id: 'dost',       emoji: '☕', label: 'Dost',      desc: 'Samimi, sıcak, sevinçte sevinir.' },
+  { id: 'koc',        emoji: '🎯', label: 'Koç',       desc: 'Direkt, aksiyona odaklı, şımartmaz.' },
+  { id: 'bilge',      emoji: '🌙', label: 'Bilge',     desc: 'Az konuşur, soruyla aydınlatır.' },
+  { id: 'dinleyici',  emoji: '🌊', label: 'Dinleyici', desc: 'Tavsiye vermez, sadece duyar.' },
 ]
 
 const MODE_OPENINGS: Record<PersonalityMode, string> = {
@@ -38,7 +38,6 @@ const MODE_OPENINGS: Record<PersonalityMode, string> = {
   dinleyici:  'Buradayım. Ne taşıyorsun bugün?',
 }
 
-// Her modun renk teması
 const MODE_COLORS: Record<PersonalityMode, {
   hex: string
   avatarBg: string
@@ -47,14 +46,15 @@ const MODE_COLORS: Record<PersonalityMode, {
   qBorder: string
   qBg: string
   qHoverBg: string
+  activeBorder: string
+  activeBg: string
 }> = {
-  zeno:      { hex: '#6D28D9', avatarBg: 'bg-purple-700',  userBubble: 'bg-purple-600',  qText: 'text-purple-300',  qBorder: 'border-purple-500/30',  qBg: 'bg-purple-500/10',  qHoverBg: 'hover:bg-purple-500/25'  },
-  dost:      { hex: '#D97706', avatarBg: 'bg-amber-600',   userBubble: 'bg-amber-500',   qText: 'text-amber-300',   qBorder: 'border-amber-500/30',   qBg: 'bg-amber-500/10',   qHoverBg: 'hover:bg-amber-500/25'   },
-  koc:       { hex: '#1D4ED8', avatarBg: 'bg-blue-700',    userBubble: 'bg-blue-700',    qText: 'text-blue-300',    qBorder: 'border-blue-500/30',    qBg: 'bg-blue-500/10',    qHoverBg: 'hover:bg-blue-500/25'    },
-  bilge:     { hex: '#065F46', avatarBg: 'bg-emerald-800', userBubble: 'bg-emerald-800', qText: 'text-emerald-300', qBorder: 'border-emerald-500/30', qBg: 'bg-emerald-500/10', qHoverBg: 'hover:bg-emerald-500/25' },
-  dinleyici: { hex: '#9D174D', avatarBg: 'bg-rose-800',    userBubble: 'bg-rose-800',    qText: 'text-rose-300',    qBorder: 'border-rose-500/30',    qBg: 'bg-rose-500/10',    qHoverBg: 'hover:bg-rose-500/25'    },
+  zeno:      { hex: '#6D28D9', avatarBg: 'bg-purple-700',  userBubble: 'bg-purple-600',  qText: 'text-purple-300',  qBorder: 'border-purple-500/30',  qBg: 'bg-purple-500/10',  qHoverBg: 'hover:bg-purple-500/25',  activeBorder: 'border-purple-500',   activeBg: 'bg-purple-600/15' },
+  dost:      { hex: '#D97706', avatarBg: 'bg-amber-600',   userBubble: 'bg-amber-500',   qText: 'text-amber-300',   qBorder: 'border-amber-500/30',   qBg: 'bg-amber-500/10',   qHoverBg: 'hover:bg-amber-500/25',   activeBorder: 'border-amber-500',    activeBg: 'bg-amber-600/15'  },
+  koc:       { hex: '#1D4ED8', avatarBg: 'bg-blue-700',    userBubble: 'bg-blue-700',    qText: 'text-blue-300',    qBorder: 'border-blue-500/30',    qBg: 'bg-blue-500/10',    qHoverBg: 'hover:bg-blue-500/25',    activeBorder: 'border-blue-500',     activeBg: 'bg-blue-700/15'   },
+  bilge:     { hex: '#065F46', avatarBg: 'bg-emerald-800', userBubble: 'bg-emerald-800', qText: 'text-emerald-300', qBorder: 'border-emerald-500/30', qBg: 'bg-emerald-500/10', qHoverBg: 'hover:bg-emerald-500/25', activeBorder: 'border-emerald-600',  activeBg: 'bg-emerald-900/20'},
+  dinleyici: { hex: '#9D174D', avatarBg: 'bg-rose-800',    userBubble: 'bg-rose-800',    qText: 'text-rose-300',    qBorder: 'border-rose-500/30',    qBg: 'bg-rose-500/10',    qHoverBg: 'hover:bg-rose-500/25',    activeBorder: 'border-rose-600',     activeBg: 'bg-rose-900/20'   },
 }
-
 
 export default function ChatPage() {
   const router = useRouter()
@@ -65,12 +65,15 @@ export default function ChatPage() {
   const [showQuickReplies, setShowQuickReplies] = useState(true)
   const [dynamicReplies, setDynamicReplies] = useState<string[]>([])
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
   const [activeMode, setActiveMode] = useState<PersonalityMode>('zeno')
   const [userName, setUserName] = useState<string | null>(null)
   const [waveActive, setWaveActive] = useState(false)
   const [waveColor, setWaveColor] = useState('#6D28D9')
+  const [showModePopup, setShowModePopup] = useState(false)
+  const [memoryToast, setMemoryToast] = useState<string | null>(null)
+  const [isPremium, setIsPremium] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
-  const assistantMessageCount = useRef(0)
 
   const modeColors = MODE_COLORS[activeMode]
   const activeModeOption = MODE_OPTIONS.find((m) => m.id === activeMode)!
@@ -80,9 +83,10 @@ export default function ChatPage() {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setIsLoggedIn(!!session?.user)
       if (session?.user) {
+        setUserId(session.user.id)
         const { data } = await supabase
           .from('users')
-          .select('personality_mode, full_name')
+          .select('personality_mode, full_name, subscription_tier, is_admin')
           .eq('id', session.user.id)
           .single()
         if (data?.personality_mode) {
@@ -91,13 +95,15 @@ export default function ChatPage() {
           setMessages([{ role: 'assistant', content: MODE_OPENINGS[mode] }])
         }
         if (data?.full_name) setUserName(data.full_name.split(' ')[0])
+        const premium = data?.is_admin || data?.subscription_tier === 'premium' || data?.subscription_tier === 'pro'
+        setIsPremium(!!premium)
       }
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const supabase2 = createClient()
+    const { data: { subscription } } = supabase2.auth.onAuthStateChange((_event, session) => {
       setIsLoggedIn(!!session?.user)
     })
-
     return () => subscription.unsubscribe()
   }, [])
 
@@ -105,10 +111,22 @@ export default function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
+  // Popup dışına tıklayınca kapat
+  useEffect(() => {
+    if (!showModePopup) return
+    function handleClick(e: MouseEvent) {
+      const popup = document.getElementById('mode-popup')
+      if (popup && !popup.contains(e.target as Node)) {
+        setShowModePopup(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [showModePopup])
+
   function triggerWave(mode: PersonalityMode) {
     setWaveColor(MODE_COLORS[mode].hex)
     setWaveActive(false)
-    // Force reflow then re-enable to restart animation
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         setWaveActive(true)
@@ -117,14 +135,32 @@ export default function ChatPage() {
     })
   }
 
-  function startNewConversation(mode: PersonalityMode) {
+  async function handleModeSelect(mode: PersonalityMode) {
+    // Ücretsiz kullanıcılar sadece Zeno modunu kullanabilir
+    if (!isPremium && mode !== 'zeno') {
+      router.push('/upgrade')
+      return
+    }
+    setShowModePopup(false)
     triggerWave(mode)
     setActiveMode(mode)
     setMessages([{ role: 'assistant', content: MODE_OPENINGS[mode] }])
     setShowQuickReplies(true)
     setDynamicReplies([])
     setConversationId(null)
-    assistantMessageCount.current = 0
+
+    if (userId) {
+      const supabase = createClient()
+      await supabase.from('users').update({ personality_mode: mode }).eq('id', userId)
+    }
+  }
+
+  function startNewConversation() {
+    triggerWave(activeMode)
+    setMessages([{ role: 'assistant', content: MODE_OPENINGS[activeMode] }])
+    setShowQuickReplies(true)
+    setDynamicReplies([])
+    setConversationId(null)
   }
 
   async function handleSignOut() {
@@ -158,11 +194,9 @@ export default function ChatPage() {
       setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
       if (data.conversationId) setConversationId(data.conversationId)
 
-      assistantMessageCount.current += 1
-
-      // Dinamik hızlı cevaplar: cevap soru içeriyorsa öneriler üret
+      // Dinamik hızlı cevaplar (sadece premium)
       setDynamicReplies([])
-      if (reply.includes('?')) {
+      if (isPremium && reply.includes('?')) {
         fetch('/api/suggestions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -173,13 +207,21 @@ export default function ChatPage() {
           .catch(() => {})
       }
 
-      // Arka planda hafıza çıkarımı
+      // Hafıza çıkarımı + toast
       const lastExchange = `Kullanıcı: ${text}\nZeno: ${reply}`
       fetch('/api/memory/extract', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ lastExchange }),
-      }).catch(() => {})
+      })
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.saved && d.content) {
+            setMemoryToast(d.content)
+            setTimeout(() => setMemoryToast(null), 3000)
+          }
+        })
+        .catch(() => {})
 
     } catch {
       setMessages((prev) => [
@@ -200,7 +242,7 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col h-screen bg-slate-950">
-      {/* Dalga animasyonu overlay */}
+      {/* Dalga animasyonu */}
       {waveActive && (
         <div
           className="wave-sweep"
@@ -208,25 +250,99 @@ export default function ChatPage() {
         />
       )}
 
+      {/* Mod seçici popup */}
+      {showModePopup && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center px-4">
+          <div
+            id="mode-popup"
+            className="bg-slate-900 border border-slate-700 rounded-2xl p-5 w-full max-w-sm shadow-2xl"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white font-semibold text-sm">Zeno Modunu Seç</h3>
+              <button
+                onClick={() => setShowModePopup(false)}
+                className="text-slate-500 hover:text-white transition-colors p-1"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {MODE_OPTIONS.map((m) => {
+                const isActive = activeMode === m.id
+                const locked = !isPremium && m.id !== 'zeno'
+                const colors = MODE_COLORS[m.id]
+
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => locked ? router.push('/upgrade') : handleModeSelect(m.id)}
+                    className={cn(
+                      'w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all duration-150 text-left',
+                      isActive
+                        ? `${colors.activeBg} ${colors.activeBorder}`
+                        : locked
+                          ? 'bg-slate-800/40 border-slate-700/50 opacity-60'
+                          : 'bg-slate-800/60 border-slate-700 hover:border-slate-600 hover:bg-slate-800'
+                    )}
+                  >
+                    <span className="text-xl shrink-0">{m.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-white">{m.label}</span>
+                        {isActive && (
+                          <span className="text-xs px-1.5 py-0.5 bg-white/10 text-slate-300 rounded-md font-medium">Aktif</span>
+                        )}
+                        {locked && (
+                          <span className="text-xs px-1.5 py-0.5 bg-amber-500/10 text-amber-400 rounded-md font-medium">🔒 Premium</span>
+                        )}
+                      </div>
+                      <p className="text-slate-400 text-xs mt-0.5 leading-relaxed">{m.desc}</p>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+
+            {!isPremium && (
+              <div className="mt-4 pt-4 border-t border-slate-800 text-center">
+                <p className="text-slate-500 text-xs mb-2">Tüm modlara erişmek için</p>
+                <Link
+                  href="/upgrade"
+                  onClick={() => setShowModePopup(false)}
+                  className="inline-block px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white text-xs font-semibold rounded-lg transition-all"
+                >
+                  Premium&apos;a Geç →
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header
         className="flex items-center gap-3 px-4 py-3 border-b border-slate-800 shrink-0 backdrop-blur-sm transition-colors duration-500"
         style={{ backgroundColor: `color-mix(in srgb, ${modeColors.hex} 8%, #020617 92%)` }}
       >
-        {/* Mod avatarı */}
         <div className={cn('w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg shrink-0 transition-colors duration-300', modeColors.avatarBg)}>
           Z
         </div>
 
-        {/* Mod badge — tıklanınca /settings'e gider */}
-        <Link
-          href="/settings"
+        {/* Mod badge — tıklayınca popup açılır */}
+        <button
+          onClick={() => setShowModePopup(true)}
           className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
           title="Modu değiştir"
         >
           <span className="text-sm">{activeModeOption.emoji}</span>
           <span className="text-xs text-slate-200 font-medium">{activeModeOption.label}</span>
-        </Link>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400 ml-0.5">
+            <path d="M6 9l6 6 6-6"/>
+          </svg>
+        </button>
 
         <div className="flex-1" />
 
@@ -243,7 +359,7 @@ export default function ChatPage() {
 
         {/* Yeni sohbet */}
         <button
-          onClick={() => startNewConversation(activeMode)}
+          onClick={startNewConversation}
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-700 rounded-xl transition-colors"
           title="Yeni sohbet başlat"
         >
@@ -325,7 +441,6 @@ export default function ChatPage() {
             </div>
           </div>
         )}
-
         <div ref={bottomRef} />
       </div>
 
@@ -347,7 +462,7 @@ export default function ChatPage() {
         </div>
       )}
 
-      {/* Dinamik cevap önerileri */}
+      {/* Dinamik cevap önerileri (sadece premium) */}
       {!showQuickReplies && !loading && dynamicReplies.length > 0 && (
         <div className="px-4 pb-2 flex flex-wrap gap-2 shrink-0">
           {dynamicReplies.map((reply) => (
@@ -390,6 +505,14 @@ export default function ChatPage() {
         </div>
         <p className="text-xs text-slate-600 text-center mt-2">Enter ile gönder · Shift+Enter yeni satır</p>
       </div>
+
+      {/* Hafıza toast */}
+      {memoryToast && (
+        <div className="fixed bottom-24 right-4 z-50 max-w-[260px] bg-slate-800/95 border border-purple-500/30 rounded-xl px-4 py-3 shadow-xl backdrop-blur-sm animate-slide-right">
+          <p className="text-xs text-purple-400 font-medium mb-0.5">🧠 Zeno bunu aklına aldı:</p>
+          <p className="text-xs text-slate-300 leading-relaxed">{memoryToast}</p>
+        </div>
+      )}
 
       <BottomNav />
     </div>

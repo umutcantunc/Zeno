@@ -67,6 +67,7 @@ export default function DashboardPage() {
   const [userName, setUserName] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isPremium, setIsPremium] = useState(false)
   const [moodLogs, setMoodLogs] = useState<MoodLog[]>([])
   const [todayMood, setTodayMood] = useState<number | null>(null)
   const [moodSaving, setMoodSaving] = useState(false)
@@ -85,8 +86,10 @@ export default function DashboardPage() {
       setUserId(uid)
 
       const { data: userData } = await supabase
-        .from('users').select('full_name').eq('id', uid).single()
+        .from('users').select('full_name, subscription_tier, is_admin').eq('id', uid).single()
       if (userData?.full_name) setUserName(userData.full_name.split(' ')[0])
+      const premium = userData?.is_admin || userData?.subscription_tier === 'premium' || userData?.subscription_tier === 'pro'
+      setIsPremium(!!premium)
 
       const since = new Date()
       since.setDate(since.getDate() - 6)
@@ -317,7 +320,7 @@ export default function DashboardPage() {
                 <p className="text-slate-600 text-xs mt-0.5">Haftalık ortalama: {weekAvgMood}/10</p>
               )}
             </div>
-            {!weekSummary && (
+            {isPremium && !weekSummary && (
               <button
                 onClick={fetchWeeklySummary}
                 disabled={weekSummaryLoading}
@@ -342,8 +345,18 @@ export default function DashboardPage() {
           </div>
           {weekSummary ? (
             <p className="text-slate-300 text-sm leading-relaxed">{weekSummary}</p>
-          ) : (
+          ) : isPremium ? (
             <p className="text-slate-600 text-xs">Son 7 günün yansıması — butona bas, Zeno özetlesin.</p>
+          ) : (
+            <div className="flex items-center justify-between">
+              <p className="text-slate-600 text-xs">Son 7 günün AI özeti</p>
+              <Link
+                href="/upgrade"
+                className="flex items-center gap-1 px-2.5 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-medium rounded-lg hover:bg-amber-500/20 transition-colors"
+              >
+                🔒 Premium
+              </Link>
+            </div>
           )}
         </div>
 

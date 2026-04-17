@@ -4,61 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import type { PersonalityMode } from '@/lib/systemPrompt'
 import BottomNav from '@/components/BottomNav'
-
-const MODES: {
-  id: PersonalityMode
-  emoji: string
-  label: string
-  desc1: string
-  desc2: string
-  activeBorder: string
-  activeBg: string
-  btnBg: string
-  badgeStyle: string
-}[] = [
-  {
-    id: 'zeno', emoji: '⚖️', label: 'Zeno',
-    desc1: 'Dengeli, analitik, seni tanıyan.',
-    desc2: 'Stoacı bilgelik ile empatiyi dengeler.',
-    activeBorder: 'border-purple-500', activeBg: 'bg-purple-600/15',
-    btnBg: 'bg-purple-600 hover:bg-purple-500',
-    badgeStyle: 'bg-purple-500/30 text-purple-300',
-  },
-  {
-    id: 'dost', emoji: '☕', label: 'Dost',
-    desc1: 'Samimi, sıcak, sevinçte sevinir.',
-    desc2: 'Üzüntüde sessizce yanında oturur.',
-    activeBorder: 'border-amber-500', activeBg: 'bg-amber-600/15',
-    btnBg: 'bg-amber-600 hover:bg-amber-500',
-    badgeStyle: 'bg-amber-500/30 text-amber-300',
-  },
-  {
-    id: 'koc', emoji: '🎯', label: 'Koç',
-    desc1: 'Direkt, aksiyona odaklı, şımartmaz.',
-    desc2: 'Netlik verir, ilerlemeye odaklar.',
-    activeBorder: 'border-blue-500', activeBg: 'bg-blue-700/15',
-    btnBg: 'bg-blue-700 hover:bg-blue-600',
-    badgeStyle: 'bg-blue-500/30 text-blue-300',
-  },
-  {
-    id: 'bilge', emoji: '🌙', label: 'Bilge',
-    desc1: 'Az konuşur, derin sorar.',
-    desc2: 'Cevap vermez, soruyla aydınlatır.',
-    activeBorder: 'border-emerald-600', activeBg: 'bg-emerald-900/20',
-    btnBg: 'bg-emerald-800 hover:bg-emerald-700',
-    badgeStyle: 'bg-emerald-500/30 text-emerald-300',
-  },
-  {
-    id: 'dinleyici', emoji: '🌊', label: 'Dinleyici',
-    desc1: 'Tavsiye vermez, sadece duyar ve doğrular.',
-    desc2: 'Çözüm üretmez, sadece var olur.',
-    activeBorder: 'border-rose-600', activeBg: 'bg-rose-900/20',
-    btnBg: 'bg-rose-800 hover:bg-rose-700',
-    badgeStyle: 'bg-rose-500/30 text-rose-300',
-  },
-]
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -71,7 +17,6 @@ export default function SettingsPage() {
   const [age, setAge] = useState('')
   const [gender, setGender] = useState('')
   const [country, setCountry] = useState('TR')
-  const [selectedMode, setSelectedMode] = useState<PersonalityMode>('zeno')
   const [notifWeekly, setNotifWeekly] = useState(false)
   const [notifTips, setNotifTips] = useState(true)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -85,7 +30,7 @@ export default function SettingsPage() {
 
       const { data } = await supabase
         .from('users')
-        .select('full_name, age, gender, country, personality_mode')
+        .select('full_name, age, gender, country')
         .eq('id', session.user.id)
         .single()
 
@@ -94,7 +39,6 @@ export default function SettingsPage() {
         setAge(data.age?.toString() ?? '')
         setGender(data.gender ?? '')
         setCountry(data.country ?? 'TR')
-        setSelectedMode((data.personality_mode as PersonalityMode) ?? 'zeno')
       }
       setLoading(false)
     })
@@ -109,20 +53,10 @@ export default function SettingsPage() {
       age: age ? parseInt(age) : null,
       gender: gender || null,
       country: country || 'TR',
-      personality_mode: selectedMode,
     }).eq('id', userId)
     setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
-  }
-
-  async function handleModeSelect(mode: PersonalityMode) {
-    setSelectedMode(mode)
-    if (!userId) return
-    const supabase = createClient()
-    await supabase.from('users').update({ personality_mode: mode }).eq('id', userId)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 1800)
   }
 
   if (loading) {
@@ -213,51 +147,20 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* Kişilik Modu */}
-        <section className="space-y-4">
-          <div>
-            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Zeno Kişilik Modu</h2>
-            <p className="text-slate-500 text-xs mt-1">Seçtiğin mod her sohbette aktif olur. Anında kaydedilir.</p>
-          </div>
-          <div className="space-y-3">
-            {MODES.map((m) => {
-              const isActive = selectedMode === m.id
-              return (
-                <div
-                  key={m.id}
-                  className={`p-4 rounded-2xl border transition-all duration-200 ${
-                    isActive
-                      ? `${m.activeBg} ${m.activeBorder} ring-1 ring-offset-0`
-                      : 'bg-slate-800/60 border-slate-700'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl shrink-0">{m.emoji}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="font-semibold text-white text-sm">{m.label}</span>
-                        {isActive && (
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${m.badgeStyle}`}>
-                            Aktif
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-slate-300 text-xs leading-relaxed">{m.desc1}</p>
-                      <p className="text-slate-500 text-xs leading-relaxed">{m.desc2}</p>
-                    </div>
-                    {!isActive && (
-                      <button
-                        type="button"
-                        onClick={() => handleModeSelect(m.id)}
-                        className={`shrink-0 px-3 py-1.5 text-xs font-semibold text-white rounded-lg transition-colors ${m.btnBg}`}
-                      >
-                        Seç
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
+        {/* Kişilik Modu — sohbet ekranındaki mod badge'inden değiştirilebilir */}
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Zeno Kişilik Modu</h2>
+          <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-4 flex items-center justify-between">
+            <div>
+              <p className="text-white text-sm font-medium">Mod Seçimi</p>
+              <p className="text-slate-500 text-xs mt-0.5">Sohbet ekranındaki mod badge&apos;ine tıklayarak değiştirebilirsin</p>
+            </div>
+            <Link
+              href="/chat"
+              className="text-sm text-purple-400 hover:text-purple-300 transition-colors font-medium shrink-0"
+            >
+              Sohbete git →
+            </Link>
           </div>
         </section>
 

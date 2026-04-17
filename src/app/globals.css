@@ -50,3 +50,18 @@ body {
   z-index: 9999;
   animation: waveSweep 0.8s ease-out forwards;
 }
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(110%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-right {
+  animation: slideInRight 0.3s ease-out forwards;
+}

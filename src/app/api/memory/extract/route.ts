@@ -42,7 +42,7 @@ ${lastExchange}`
 
     if (!parsed?.content || !parsed?.category) return NextResponse.json({ saved: false })
 
-    // Duplicate check - same content already saved?
+    // Duplicate check
     const { data: existing } = await supabase
       .from('memory_items')
       .select('id')
@@ -57,7 +57,8 @@ ${lastExchange}`
       category: parsed.category,
     })
 
-    return NextResponse.json({ saved: true })
+    // saved: true + content döndür — chat ekranı toast gösterecek
+    return NextResponse.json({ saved: true, content: parsed.content })
   } catch {
     return NextResponse.json({ saved: false })
   }
