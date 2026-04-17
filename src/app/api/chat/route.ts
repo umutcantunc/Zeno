@@ -28,35 +28,47 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
 
     let resolvedProfile: UserProfile | undefined = profile
-    if (user && !resolvedProfile) {
+    let resolvedMode: PersonalityMode = mode
+
+    if (user) {
       const { data: dbUser } = await supabase
         .from('users')
         .select('full_name, age, gender, country, personality_mode')
         .eq('id', user.id)
         .single()
       if (dbUser) {
-        resolvedProfile = {
-          name: dbUser.full_name,
-          age: dbUser.age,
-          gender: dbUser.gender,
-          country: dbUser.country,
+        if (!resolvedProfile) {
+          resolvedProfile = {
+            name: dbUser.full_name,
+            age: dbUser.age,
+            gender: dbUser.gender,
+            country: dbUser.country,
+          }
+        }
+        if (mode === 'zeno' && dbUser.personality_mode) {
+          resolvedMode = dbUser.personality_mode as PersonalityMode
         }
       }
     }
 
-    let resolvedMode: PersonalityMode = mode
-    if (user && mode === 'zeno') {
-      const { data: dbUser } = await supabase
-        .from('users')
-        .select('personality_mode')
-        .eq('id', user.id)
-        .single()
-      if (dbUser?.personality_mode) {
-        resolvedMode = dbUser.personality_mode as PersonalityMode
+    // Hafıza entegrasyonu: kullanıcının memory_items'larını sistem promptuna ekle
+    let memoryContext = ''
+    if (user) {
+      const { data: memories } = await supabase
+        .from('memory_items')
+        .select('content, category')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10)
+      if (memories && memories.length > 0) {
+        memoryContext =
+          '\n\nKULLANICI HAKKINDA BİLDİKLERİN:\n' +
+          memories.map((m) => `- ${m.content}`).join('\n') +
+          '\nBu bilgileri konuşmada doğal olarak kullan, ama her cümlede tekrar etme.'
       }
     }
 
-    const systemPrompt = getSystemPrompt(resolvedMode, resolvedProfile)
+    const systemPrompt = getSystemPrompt(resolvedMode, resolvedProfile) + memoryContext
 
     let activeConversationId = conversationId
     if (user) {

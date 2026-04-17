@@ -60,20 +60,29 @@ interface MoodLog {
   created_at: string
 }
 
+const MOOD_SCORES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
 export default function DashboardPage() {
   const router = useRouter()
   const [userName, setUserName] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [moodLogs, setMoodLogs] = useState<MoodLog[]>([])
   const [todayMood, setTodayMood] = useState<number | null>(null)
+  const [moodSaving, setMoodSaving] = useState(false)
+  const [moodSaved, setMoodSaved] = useState(false)
   const [quote] = useState(() => STOIC_QUOTES[Math.floor(Math.random() * STOIC_QUOTES.length)])
   const [memoryCount, setMemoryCount] = useState(0)
+  const [weekSummary, setWeekSummary] = useState<string | null>(null)
+  const [weekSummaryLoading, setWeekSummaryLoading] = useState(false)
+  const [weekAvgMood, setWeekAvgMood] = useState<string | null>(null)
 
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { router.push('/auth/login'); return }
       const uid = session.user.id
+      setUserId(uid)
 
       const { data: userData } = await supabase
         .from('users').select('full_name').eq('id', uid).single()
@@ -98,6 +107,37 @@ export default function DashboardPage() {
       setLoading(false)
     })
   }, [router])
+
+  async function handleMoodSelect(score: number) {
+    if (!userId || moodSaving) return
+    setMoodSaving(true)
+    setTodayMood(score)
+    const supabase = createClient()
+    await supabase.from('mood_logs').insert({ user_id: userId, score })
+    // Grafik verisini güncelle
+    setMoodLogs((prev) => {
+      const today = new Date(); today.setHours(0, 0, 0, 0)
+      const filtered = prev.filter((l) => new Date(l.created_at) < today)
+      return [...filtered, { score, created_at: new Date().toISOString() }]
+    })
+    setMoodSaving(false)
+    setMoodSaved(true)
+    setTimeout(() => setMoodSaved(false), 2000)
+  }
+
+  async function fetchWeeklySummary() {
+    setWeekSummaryLoading(true)
+    try {
+      const res = await fetch('/api/weekly-summary')
+      const data = await res.json()
+      setWeekSummary(data.summary ?? null)
+      setWeekAvgMood(data.avgMood ?? null)
+    } catch {
+      setWeekSummary('Özet alınırken bir sorun oluştu.')
+    } finally {
+      setWeekSummaryLoading(false)
+    }
+  }
 
   const { chartLabels, chartData } = useMemo(() => {
     const labels: string[] = []
@@ -193,27 +233,48 @@ export default function DashboardPage() {
 
       <div className="px-5 space-y-4">
         <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-5">
-          <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-3">Bugünkü Ruh Halin</p>
-          {todayMood ? (
-            <div className="flex items-center gap-4">
-              <span className="text-4xl">{getMoodEmoji(todayMood)}</span>
-              <div>
-                <div className="flex items-baseline gap-1">
-                  <span className={'text-3xl font-bold ' + getMoodColor(todayMood)}>{todayMood}</span>
-                  <span className="text-slate-500 text-sm">/10</span>
-                </div>
-                <p className="text-slate-400 text-xs mt-0.5">Chat sırasında kaydedildi</p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Bugünkü Ruh Halin</p>
+            {moodSaved && <span className="text-xs text-emerald-400 font-medium">✓ Kaydedildi</span>}
+          </div>
+
+          {todayMood && (
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-3xl">{getMoodEmoji(todayMood)}</span>
+              <div className="flex items-baseline gap-1">
+                <span className={'text-2xl font-bold ' + getMoodColor(todayMood)}>{todayMood}</span>
+                <span className="text-slate-500 text-sm">/10</span>
               </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <span className="text-3xl">💭</span>
-              <div>
-                <p className="text-slate-300 text-sm font-medium">Henüz kaydedilmedi</p>
-                <p className="text-slate-500 text-xs mt-0.5">Zeno ile konuş, ruh halini paylaş</p>
-              </div>
+              <span className="text-slate-500 text-xs ml-auto">Güncelle:</span>
             </div>
           )}
+
+          {!todayMood && (
+            <p className="text-slate-400 text-sm mb-3">Bugün nasıl hissediyorsun?</p>
+          )}
+
+          <div className="flex flex-wrap gap-1.5">
+            {MOOD_SCORES.map((n) => (
+              <button
+                key={n}
+                onClick={() => handleMoodSelect(n)}
+                disabled={moodSaving}
+                className={[
+                  'w-8 h-8 rounded-lg text-xs font-semibold transition-all duration-150 border',
+                  todayMood === n
+                    ? n <= 3 ? 'bg-red-500 text-white border-red-400'
+                    : n <= 6 ? 'bg-amber-500 text-white border-amber-400'
+                    : 'bg-emerald-500 text-white border-emerald-400'
+                    : n <= 3 ? 'bg-red-500/20 text-red-300 hover:bg-red-500/40 border-red-500/30'
+                    : n <= 6 ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/40 border-amber-500/30'
+                    : 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/40 border-emerald-500/30',
+                ].join(' ')}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+          <p className="text-slate-600 text-xs mt-2">1 = çok kötü · 10 = harika</p>
         </div>
 
         <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-5">
@@ -247,6 +308,46 @@ export default function DashboardPage() {
           </Link>
         </div>
 
+        {/* Haftalık Özet */}
+        <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Bu Haftanın Özeti</p>
+              {weekAvgMood && (
+                <p className="text-slate-600 text-xs mt-0.5">Haftalık ortalama: {weekAvgMood}/10</p>
+              )}
+            </div>
+            {!weekSummary && (
+              <button
+                onClick={fetchWeeklySummary}
+                disabled={weekSummaryLoading}
+                className="px-3 py-1.5 bg-purple-600/20 border border-purple-500/30 text-purple-300 text-xs font-medium rounded-lg hover:bg-purple-600/30 transition-colors disabled:opacity-50"
+              >
+                {weekSummaryLoading ? (
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-3 h-3 border border-purple-400 border-t-transparent rounded-full animate-spin" />
+                    Hazırlanıyor…
+                  </span>
+                ) : 'Özet oluştur'}
+              </button>
+            )}
+            {weekSummary && (
+              <button
+                onClick={() => { setWeekSummary(null); setWeekAvgMood(null) }}
+                className="text-slate-600 hover:text-slate-400 text-xs transition-colors"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          {weekSummary ? (
+            <p className="text-slate-300 text-sm leading-relaxed">{weekSummary}</p>
+          ) : (
+            <p className="text-slate-600 text-xs">Son 7 günün yansıması — butona bas, Zeno özetlesin.</p>
+          )}
+        </div>
+
+        {/* Günün Sözü */}
         <div className="bg-gradient-to-br from-purple-900/30 to-slate-800/60 border border-purple-500/20 rounded-2xl p-5">
           <p className="text-xs text-purple-400 uppercase tracking-wider font-semibold mb-3">✨ Günün Sözü</p>
           <p className="text-slate-200 text-sm leading-relaxed italic">&ldquo;{quote.text}&rdquo;</p>

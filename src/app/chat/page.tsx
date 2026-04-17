@@ -55,37 +55,6 @@ const MODE_COLORS: Record<PersonalityMode, {
   dinleyici: { hex: '#9D174D', avatarBg: 'bg-rose-800',    userBubble: 'bg-rose-800',    qText: 'text-rose-300',    qBorder: 'border-rose-500/30',    qBg: 'bg-rose-500/10',    qHoverBg: 'hover:bg-rose-500/25'    },
 }
 
-const MOOD_SCORES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-
-function MoodWidget({ onSelect, avatarBg }: { onSelect: (score: number) => void; avatarBg: string }) {
-  return (
-    <div className="flex justify-start">
-      <div className={cn('w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 mr-2 mt-1', avatarBg)}>
-        Z
-      </div>
-      <div className="max-w-[80%] bg-slate-800 border border-slate-700 rounded-2xl rounded-bl-sm px-4 py-3 space-y-3">
-        <p className="text-slate-100 text-sm leading-relaxed">Bugün kendini 1–10 arası nasıl hissediyorsun?</p>
-        <div className="flex flex-wrap gap-1.5">
-          {MOOD_SCORES.map((n) => (
-            <button
-              key={n}
-              onClick={() => onSelect(n)}
-              className={cn(
-                'w-8 h-8 rounded-lg text-xs font-semibold transition-all duration-150',
-                n <= 3 ? 'bg-red-500/20 text-red-300 hover:bg-red-500/40 border border-red-500/30'
-                : n <= 6 ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/40 border border-amber-500/30'
-                : 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/40 border border-emerald-500/30'
-              )}
-            >
-              {n}
-            </button>
-          ))}
-        </div>
-        <p className="text-slate-500 text-xs">1 = çok kötü · 10 = harika</p>
-      </div>
-    </div>
-  )
-}
 
 export default function ChatPage() {
   const router = useRouter()
@@ -94,13 +63,10 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false)
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [showQuickReplies, setShowQuickReplies] = useState(true)
-  const [showMoodWidget, setShowMoodWidget] = useState(false)
-  const [moodSaved, setMoodSaved] = useState(false)
+  const [dynamicReplies, setDynamicReplies] = useState<string[]>([])
   const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [userId, setUserId] = useState<string | null>(null)
   const [activeMode, setActiveMode] = useState<PersonalityMode>('zeno')
   const [userName, setUserName] = useState<string | null>(null)
-  // Dalga animasyonu
   const [waveActive, setWaveActive] = useState(false)
   const [waveColor, setWaveColor] = useState('#6D28D9')
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -113,7 +79,6 @@ export default function ChatPage() {
     const supabase = createClient()
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setIsLoggedIn(!!session?.user)
-      setUserId(session?.user?.id ?? null)
       if (session?.user) {
         const { data } = await supabase
           .from('users')
@@ -131,7 +96,6 @@ export default function ChatPage() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsLoggedIn(!!session?.user)
-      setUserId(session?.user?.id ?? null)
     })
 
     return () => subscription.unsubscribe()
@@ -139,7 +103,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, loading, showMoodWidget])
+  }, [messages, loading])
 
   function triggerWave(mode: PersonalityMode) {
     setWaveColor(MODE_COLORS[mode].hex)
@@ -158,47 +122,14 @@ export default function ChatPage() {
     setActiveMode(mode)
     setMessages([{ role: 'assistant', content: MODE_OPENINGS[mode] }])
     setShowQuickReplies(true)
-    setShowMoodWidget(false)
+    setDynamicReplies([])
     setConversationId(null)
     assistantMessageCount.current = 0
-    setMoodSaved(false)
   }
 
   async function handleSignOut() {
     await createClient().auth.signOut()
     router.push('/auth/login')
-  }
-
-  async function handleMoodSelect(score: number) {
-    setShowMoodWidget(false)
-    setMoodSaved(true)
-    setMessages((prev) => [...prev, { role: 'user', content: `Ruh halim: ${score}/10` }])
-
-    if (userId) {
-      const supabase = createClient()
-      await supabase.from('mood_logs').insert({ user_id: userId, score })
-    }
-
-    setLoading(true)
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: `Ruh halim bugün ${score}/10.`,
-          conversationId,
-          history: messages.map((m) => ({ role: m.role, content: m.content })),
-          mode: activeMode,
-        }),
-      })
-      const data = await res.json()
-      if (res.ok) {
-        setMessages((prev) => [...prev, { role: 'assistant', content: data.reply }])
-        if (data.conversationId) setConversationId(data.conversationId)
-      }
-    } catch { /* sessizce geç */ } finally {
-      setLoading(false)
-    }
   }
 
   async function sendMessage(text: string) {
@@ -228,8 +159,18 @@ export default function ChatPage() {
       if (data.conversationId) setConversationId(data.conversationId)
 
       assistantMessageCount.current += 1
-      if (assistantMessageCount.current === 2 && !moodSaved) {
-        setTimeout(() => setShowMoodWidget(true), 600)
+
+      // Dinamik hızlı cevaplar: cevap soru içeriyorsa öneriler üret
+      setDynamicReplies([])
+      if (reply.includes('?')) {
+        fetch('/api/suggestions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ zenoMessage: reply }),
+        })
+          .then((r) => r.json())
+          .then((d) => { if (d.suggestions?.length) setDynamicReplies(d.suggestions) })
+          .catch(() => {})
       }
 
       // Arka planda hafıza çıkarımı
@@ -370,8 +311,6 @@ export default function ChatPage() {
           </div>
         ))}
 
-        {showMoodWidget && <MoodWidget onSelect={handleMoodSelect} avatarBg={modeColors.avatarBg} />}
-
         {loading && (
           <div className="flex items-end gap-2 justify-start">
             <div className={cn('w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 mb-0.5', modeColors.avatarBg)}>
@@ -390,7 +329,7 @@ export default function ChatPage() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Quick replies */}
+      {/* Açılış quick replies */}
       {showQuickReplies && (
         <div className="px-4 pb-2 flex flex-wrap gap-2 shrink-0">
           {QUICK_REPLIES[activeMode].map((reply) => (
@@ -399,6 +338,24 @@ export default function ChatPage() {
               onClick={() => sendMessage(reply)}
               className={cn(
                 'px-4 py-2 text-xs font-medium rounded-full border transition-all duration-150',
+                modeColors.qText, modeColors.qBorder, modeColors.qBg, modeColors.qHoverBg
+              )}
+            >
+              {reply}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Dinamik cevap önerileri */}
+      {!showQuickReplies && !loading && dynamicReplies.length > 0 && (
+        <div className="px-4 pb-2 flex flex-wrap gap-2 shrink-0">
+          {dynamicReplies.map((reply) => (
+            <button
+              key={reply}
+              onClick={() => { sendMessage(reply); setDynamicReplies([]) }}
+              className={cn(
+                'px-3 py-1.5 text-xs font-medium rounded-full border transition-all duration-150',
                 modeColors.qText, modeColors.qBorder, modeColors.qBg, modeColors.qHoverBg
               )}
             >
