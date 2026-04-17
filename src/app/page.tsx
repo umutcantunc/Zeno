@@ -7,9 +7,9 @@ export default function HomePage() {
         <div className="space-y-4">
           <div className="w-14 h-14 rounded-2xl bg-purple-600 flex items-center justify-center text-white font-bold text-2xl mx-auto shadow-lg shadow-purple-900/40">Z</div>
           <h1 className="text-5xl font-bold text-white tracking-tight">Zeno</h1>
-          <p className="text-xl text-purple-200 font-medium">Zihin koçun, her an yanında</p>
+          <p className="text-xl text-purple-200 font-medium">Zihninin pusulası.</p>
           <p className="text-base text-slate-400 max-w-md mx-auto leading-relaxed">
-            Yargılamadan dinleyen, anlayan, rehberlik eden AI destekli zihin koçun.
+            Dinler, anlar, yol gösterir. Her duyguya yer var.
           </p>
         </div>
 

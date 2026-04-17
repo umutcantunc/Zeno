@@ -89,7 +89,7 @@ const MODE_HEX: Record<string, string> = {
 }
 
 const MODE_ACCENT: Record<string, string> = {
-  zeno:       'bg-purple-600 hover:bg-purple-500 shadow-purple-900/40',
+  zeno:       'bg-violet-700 hover:bg-violet-600 shadow-violet-900/40',
   dost:       'bg-amber-600  hover:bg-amber-500  shadow-amber-900/40',
   koc:        'bg-blue-700   hover:bg-blue-600   shadow-blue-900/40',
   bilge:      'bg-emerald-800 hover:bg-emerald-700 shadow-emerald-900/40',
@@ -98,7 +98,7 @@ const MODE_ACCENT: Record<string, string> = {
 
 // ── Mood ──────────────────────────────────────────────────────────────────────
 const MOOD_OPTIONS = [
-  { emoji: '😔', score: 1,  label: 'Çok kötü', activeRing: 'ring-red-500',    activeBg: 'bg-red-500/20' },
+  { emoji: '😔', score: 1,  label: 'Çok kötü', activeRing: 'ring-[#7F2626]',  activeBg: 'bg-[#3D1515]' },
   { emoji: '😟', score: 3,  label: 'Kötü',     activeRing: 'ring-orange-500', activeBg: 'bg-orange-500/20' },
   { emoji: '😐', score: 5,  label: 'Orta',     activeRing: 'ring-amber-500',  activeBg: 'bg-amber-500/20' },
   { emoji: '🙂', score: 7,  label: 'İyi',      activeRing: 'ring-lime-500',   activeBg: 'bg-lime-500/20' },
@@ -237,12 +237,8 @@ export default function DashboardPage() {
 
   function formatLastConv(conv: Conversation | null): string {
     if (!conv) return 'Henüz sohbet yok'
-    const diff = Date.now() - new Date(conv.created_at).getTime()
-    const days = Math.floor(diff / 86400000)
-    const title = conv.title ? `"${conv.title.slice(0, 24)}…"` : 'bir sohbet'
-    if (days === 0) return `Bugün ${title}`
-    if (days === 1) return `Dün ${title}`
-    return `${days} gün önce ${title}`
+    const title = conv.title ? conv.title.slice(0, 32) : 'Başlıksız sohbet'
+    return `Son sohbet: ${title}`
   }
 
   // Chart

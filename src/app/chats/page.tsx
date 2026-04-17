@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -37,6 +37,18 @@ export default function ChatsPage() {
   const [deleting, setDeleting] = useState(false)
   const [isPremium, setIsPremium] = useState(false)
 
+  // Inline başlık düzenleme
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editTitle, setEditTitle] = useState('')
+  const editInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (editingId && editInputRef.current) {
+      editInputRef.current.focus()
+      editInputRef.current.select()
+    }
+  }, [editingId])
+
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -62,13 +74,9 @@ export default function ChatsPage() {
       .eq('user_id', uid)
       .order('created_at', { ascending: false })
 
-    // Ücretsiz kullanıcılar sadece son 3 sohbeti görür
-    if (!premium) {
-      query = query.limit(3)
-    }
+    if (!premium) query = query.limit(3)
 
     const { data: convs } = await query
-
     if (!convs) { setLoading(false); return }
 
     const withCounts = await Promise.all(
@@ -92,6 +100,25 @@ export default function ChatsPage() {
     setConversations((prev) => prev.filter((c) => c.id !== id))
     setDeleteTarget(null)
     setDeleting(false)
+  }
+
+  function startEdit(conv: Conversation) {
+    setEditingId(conv.id)
+    setEditTitle(conv.title || '')
+  }
+
+  async function handleRenameTitle(id: string) {
+    const trimmed = editTitle.trim()
+    if (!trimmed) { setEditingId(null); return }
+    const supabase = createClient()
+    await supabase.from('conversations').update({ title: trimmed }).eq('id', id)
+    setConversations((prev) => prev.map((c) => c.id === id ? { ...c, title: trimmed } : c))
+    setEditingId(null)
+  }
+
+  function handleEditKeyDown(e: React.KeyboardEvent<HTMLInputElement>, id: string) {
+    if (e.key === 'Enter') { e.preventDefault(); handleRenameTitle(id) }
+    if (e.key === 'Escape') setEditingId(null)
   }
 
   return (
@@ -129,39 +156,97 @@ export default function ChatsPage() {
         )}
 
         <div className="space-y-2">
-          {conversations.map((conv) => (
-            <div key={conv.id} className="group relative bg-slate-800/60 border border-slate-700 rounded-xl hover:border-slate-600 hover:bg-slate-800/80 transition-all duration-150">
-              <Link
-                href={`/chat/${conv.id}`}
-                className="flex items-center gap-3 px-4 py-3.5 pr-12"
+          {conversations.map((conv) => {
+            const isEditing = editingId === conv.id
+            return (
+              <div
+                key={conv.id}
+                className="group relative bg-slate-800/60 border border-slate-700 rounded-xl hover:border-slate-600 hover:bg-slate-800/80 transition-all duration-150"
               >
-                <span className="text-xl shrink-0">{MODE_EMOJIS[conv.mode ?? 'zeno'] ?? '⚖️'}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-slate-100 text-sm font-medium truncate">
-                    {conv.title || 'Başlıksız sohbet'}
-                  </p>
-                  <p className="text-slate-500 text-xs mt-0.5">
-                    {formatDate(conv.created_at)} · {conv.message_count} mesaj
-                  </p>
-                </div>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-600 group-hover:text-slate-400 transition-colors shrink-0">
-                  <path d="M9 18l6-6-6-6"/>
-                </svg>
-              </Link>
-              <button
-                onClick={(e) => { e.preventDefault(); setDeleteTarget(conv.id) }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                title="Sil"
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                </svg>
-              </button>
-            </div>
-          ))}
+                {isEditing ? (
+                  /* ── Düzenleme modu ── */
+                  <div className="flex items-center gap-3 px-4 py-3">
+                    <span className="text-xl shrink-0">{MODE_EMOJIS[conv.mode ?? 'zeno'] ?? '⚖️'}</span>
+                    <input
+                      ref={editInputRef}
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value.slice(0, 50))}
+                      onKeyDown={(e) => handleEditKeyDown(e, conv.id)}
+                      maxLength={50}
+                      placeholder="Sohbet başlığı…"
+                      className="flex-1 bg-slate-700 border border-slate-500 rounded-lg px-3 py-1.5 text-sm text-white placeholder-slate-400 outline-none focus:border-purple-500 transition-colors"
+                    />
+                    <span className="text-slate-600 text-xs shrink-0">{editTitle.length}/50</span>
+                    <button
+                      onClick={() => handleRenameTitle(conv.id)}
+                      className="p-1.5 text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors shrink-0"
+                      title="Kaydet (Enter)"
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => setEditingId(null)}
+                      className="p-1.5 text-slate-500 hover:bg-slate-700 rounded-lg transition-colors shrink-0"
+                      title="İptal (Esc)"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                      </svg>
+                    </button>
+                  </div>
+                ) : (
+                  /* ── Normal mod ── */
+                  <>
+                    <Link
+                      href={`/chat/${conv.id}`}
+                      className="flex items-center gap-3 px-4 py-3.5 pr-20"
+                    >
+                      <span className="text-xl shrink-0">{MODE_EMOJIS[conv.mode ?? 'zeno'] ?? '⚖️'}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-slate-100 text-sm font-medium truncate">
+                          {conv.title || 'Başlıksız sohbet'}
+                        </p>
+                        <p className="text-slate-500 text-xs mt-0.5">
+                          {formatDate(conv.created_at)} · {conv.message_count} mesaj
+                        </p>
+                      </div>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-600 group-hover:text-slate-400 transition-colors shrink-0">
+                        <path d="M9 18l6-6-6-6"/>
+                      </svg>
+                    </Link>
+
+                    {/* Hover butonları — kalem + çöp */}
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => { e.preventDefault(); startEdit(conv) }}
+                        className="p-2 text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                        title="Başlığı düzenle"
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                      </button>
+                      <button
+                        onClick={(e) => { e.preventDefault(); setDeleteTarget(conv.id) }}
+                        className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                        title="Sil"
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )
+          })}
         </div>
 
-        {/* Premium kilit banner — sadece ücretsiz kullanıcılara */}
+        {/* Premium kilit banner */}
         {!loading && !isPremium && conversations.length > 0 && (
           <div className="mt-4 rounded-2xl border border-purple-500/20 bg-gradient-to-br from-purple-900/20 to-slate-800/40 p-5 text-center space-y-3">
             <p className="text-2xl">🔒</p>

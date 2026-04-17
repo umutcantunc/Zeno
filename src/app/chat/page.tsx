@@ -94,7 +94,7 @@ export default function ChatPage() {
           setActiveMode(mode)
           setMessages([{ role: 'assistant', content: MODE_OPENINGS[mode] }])
         }
-        if (data?.full_name) setUserName(data.full_name.split(' ')[0])
+        if (data?.full_name) setUserName(data.full_name)
         const premium = data?.is_admin || data?.subscription_tier === 'premium' || data?.subscription_tier === 'pro'
         setIsPremium(!!premium)
       }
@@ -371,7 +371,7 @@ export default function ChatPage() {
 
         {isLoggedIn ? (
           <div className="flex items-center gap-1">
-            {userName && <span className="text-xs text-slate-500 hidden sm:block">{userName}</span>}
+            {userName && <span className="text-xs text-slate-500 max-w-[80px] truncate">{userName}</span>}
             <button
               onClick={handleSignOut}
               className="text-xs text-slate-500 hover:text-slate-300 transition-colors px-2.5 py-1.5 rounded-lg hover:bg-slate-800"

@@ -17,6 +17,11 @@ const config: Config = {
           light: "#7C3AED",
           subtle: "rgba(109,40,217,0.15)",
         },
+        // Arka plan renklerini biraz açık yap — göz yorulmayı azalt
+        slate: {
+          950: "#0F0F1A",
+          900: "#13132A",
+        },
       },
     },
   },
