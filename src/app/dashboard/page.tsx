@@ -117,7 +117,7 @@ function scoreToMoodIndex(score: number): number {
 const DAY_LABELS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz']
 
 interface MoodLog { score: number; created_at: string }
-interface Conversation { title: string | null; created_at: string }
+interface Conversation { id: string; title: string | null; created_at: string }
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -193,7 +193,7 @@ export default function DashboardPage() {
       // Son sohbet
       const { data: convData } = await supabase
         .from('conversations')
-        .select('title, created_at')
+        .select('id, title, created_at')
         .eq('user_id', uid)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -346,7 +346,7 @@ export default function DashboardPage() {
 
         {/* ── BÖLÜM 2: ANA BUTON ──────────────────────────────────────────────── */}
         <Link
-          href="/chat"
+          href={lastConv ? `/chat/${lastConv.id}` : '/chat'}
           className={`flex items-center gap-4 w-full px-5 py-4 rounded-2xl text-white font-semibold shadow-lg transition-all duration-150 active:scale-[0.98] ${modeAccent}`}
         >
           <div className="w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center shrink-0">
