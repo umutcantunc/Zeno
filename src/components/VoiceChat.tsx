@@ -214,112 +214,109 @@ export default function VoiceChat({
   const canInteract = phase !== 'transcribing' && phase !== 'thinking'
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex flex-col items-center justify-center px-6">
-      {/* Kapat butonu */}
-      <button
-        onClick={onClose}
-        className="absolute top-6 right-6 w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M18 6L6 18M6 6l12 12"/>
-        </svg>
-      </button>
+    /* Backdrop — tıklayınca kapat */
+    <div
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center px-4 pb-6 sm:pb-0"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+    >
+      {/* Kart */}
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col items-center">
 
-      {/* Mod etiketi */}
-      <div className="flex items-center gap-2 mb-10">
-        <span className="text-2xl">{modeEmoji}</span>
-        <span className="text-white/70 text-sm font-medium">{modeLabel} · Sesli Mod</span>
-      </div>
-
-      {/* Ses dalgası / loading animasyonu */}
-      <div className="h-14 flex items-center justify-center gap-1.5 mb-8">
-        {isAnimating ? (
-          Array.from({ length: 7 }).map((_, i) => (
-            <span
-              key={i}
-              className="voice-bar"
-              style={{ backgroundColor: modeColor }}
-            />
-          ))
-        ) : isLoading ? (
-          <div className="flex gap-1.5 items-center">
-            <span className="w-2 h-2 rounded-full animate-bounce [animation-delay:0ms]" style={{ backgroundColor: modeColor }} />
-            <span className="w-2 h-2 rounded-full animate-bounce [animation-delay:150ms]" style={{ backgroundColor: modeColor }} />
-            <span className="w-2 h-2 rounded-full animate-bounce [animation-delay:300ms]" style={{ backgroundColor: modeColor }} />
+        {/* Başlık satırı */}
+        <div className="flex items-center justify-between w-full mb-5">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">{modeEmoji}</span>
+            <span className="text-white/70 text-sm font-medium">{modeLabel} · Sesli Mod</span>
           </div>
-        ) : (
-          <div className="w-px h-8 opacity-0" />
+          <button
+            onClick={onClose}
+            className="w-7 h-7 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Ses dalgası / loading animasyonu */}
+        <div className="h-10 flex items-center justify-center gap-1.5 mb-4">
+          {isAnimating ? (
+            Array.from({ length: 7 }).map((_, i) => (
+              <span key={i} className="voice-bar" style={{ backgroundColor: modeColor }} />
+            ))
+          ) : isLoading ? (
+            <div className="flex gap-1.5 items-center">
+              <span className="w-2 h-2 rounded-full animate-bounce [animation-delay:0ms]" style={{ backgroundColor: modeColor }} />
+              <span className="w-2 h-2 rounded-full animate-bounce [animation-delay:150ms]" style={{ backgroundColor: modeColor }} />
+              <span className="w-2 h-2 rounded-full animate-bounce [animation-delay:300ms]" style={{ backgroundColor: modeColor }} />
+            </div>
+          ) : (
+            <div className="w-px h-6 opacity-0" />
+          )}
+        </div>
+
+        {/* Faz etiketi */}
+        <p className={`text-sm font-medium mb-1 text-center transition-colors ${phase === 'error' ? 'text-red-400' : 'text-white/70'}`}>
+          {PHASE_LABELS[phase]}
+        </p>
+        {errorMsg && (
+          <p className="text-xs text-red-400/80 text-center mb-2 leading-relaxed">{errorMsg}</p>
         )}
+
+        {/* Transkript ve yanıt önizleme */}
+        {transcript && (
+          <div className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 mb-2 mt-1">
+            <p className="text-xs text-white/40 mb-0.5">Sen:</p>
+            <p className="text-xs text-white/80 leading-relaxed">{transcript}</p>
+          </div>
+        )}
+        {reply && (
+          <div className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 mb-2">
+            <p className="text-xs mb-0.5" style={{ color: modeColor + 'cc' }}>Zeno:</p>
+            <p className="text-xs text-white/80 leading-relaxed line-clamp-2">{reply}</p>
+          </div>
+        )}
+
+        {/* Mikrofon butonu */}
+        <button
+          onClick={handleMicClick}
+          disabled={!canInteract}
+          className={`
+            mt-4 w-16 h-16 rounded-full flex items-center justify-center transition-all duration-200
+            disabled:opacity-40 disabled:cursor-not-allowed
+            ${phase === 'recording' ? 'scale-110' : 'hover:scale-105 active:scale-95'}
+          `}
+          style={{
+            backgroundColor: phase === 'recording' ? '#EF4444' : modeColor,
+            boxShadow: isAnimating ? `0 0 24px ${modeColor}60` : undefined,
+          }}
+        >
+          {phase === 'recording' ? (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+              <rect x="6" y="6" width="12" height="12" rx="2"/>
+            </svg>
+          ) : phase === 'speaking' ? (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+            </svg>
+          ) : (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="23"/>
+              <line x1="8" y1="23" x2="16" y2="23"/>
+            </svg>
+          )}
+        </button>
+
+        <p className="text-xs text-white/25 mt-4 text-center">
+          {phase === 'idle' && 'Mikrofona bas ve konuş · ESC ile kapat'}
+          {phase === 'recording' && 'Durdurmak için tekrar bas'}
+          {phase === 'speaking' && 'Sesi durdurmak için tıkla'}
+        </p>
       </div>
-
-      {/* Faz etiketi */}
-      <p className={`text-sm font-medium mb-2 transition-colors ${phase === 'error' ? 'text-red-400' : 'text-white/80'}`}>
-        {PHASE_LABELS[phase]}
-      </p>
-      {errorMsg && (
-        <p className="text-xs text-red-400/80 text-center max-w-xs mb-2">{errorMsg}</p>
-      )}
-
-      {/* Transkript ve yanıt önizleme */}
-      {transcript && (
-        <div className="max-w-xs w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 mb-2">
-          <p className="text-xs text-white/50 mb-0.5">Sen:</p>
-          <p className="text-sm text-white/90 leading-relaxed">{transcript}</p>
-        </div>
-      )}
-      {reply && (
-        <div className="max-w-xs w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 mb-4">
-          <p className="text-xs mb-0.5" style={{ color: modeColor + 'cc' }}>Zeno:</p>
-          <p className="text-sm text-white/90 leading-relaxed line-clamp-3">{reply}</p>
-        </div>
-      )}
-
-      {/* Mikrofon butonu */}
-      <button
-        onClick={handleMicClick}
-        disabled={!canInteract}
-        className={`
-          mt-4 w-20 h-20 rounded-full flex items-center justify-center transition-all duration-200
-          disabled:opacity-40 disabled:cursor-not-allowed
-          ${phase === 'recording'
-            ? 'scale-110 shadow-2xl'
-            : phase === 'speaking'
-              ? 'scale-105'
-              : 'hover:scale-105 active:scale-95'}
-        `}
-        style={{
-          backgroundColor: phase === 'recording' ? '#EF4444' : modeColor,
-          boxShadow: isAnimating ? `0 0 32px ${modeColor}60` : undefined,
-        }}
-      >
-        {phase === 'recording' ? (
-          /* Stop icon */
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-            <rect x="6" y="6" width="12" height="12" rx="2"/>
-          </svg>
-        ) : phase === 'speaking' ? (
-          /* Speaker icon */
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
-            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-          </svg>
-        ) : (
-          /* Mic icon */
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-            <line x1="12" y1="19" x2="12" y2="23"/>
-            <line x1="8" y1="23" x2="16" y2="23"/>
-          </svg>
-        )}
-      </button>
-
-      <p className="text-xs text-white/30 mt-6 text-center">
-        {phase === 'idle' && 'Mikrofona bas ve konuş · ESC ile kapat'}
-        {phase === 'recording' && 'Bitirmek için tekrar bas'}
-        {phase === 'speaking' && 'Durdurmak için tıkla'}
-      </p>
     </div>
   )
 }
