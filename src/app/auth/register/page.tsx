@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
@@ -20,7 +19,6 @@ const STEPS = ['Hesap', 'Profil'] as const
 type Step = 0 | 1
 
 export default function RegisterPage() {
-  const router = useRouter()
   const [step, setStep] = useState<Step>(0)
 
   // Adım 0
@@ -86,7 +84,8 @@ export default function RegisterPage() {
       }).eq('id', userId)
     }
 
-    router.push('/chat')
+    // Hard redirect → middleware session'ı güvenle okur
+    window.location.href = '/dashboard'
   }
 
   if (step === 1) {
