@@ -3,6 +3,5 @@
   "buildCommand": "npm run build",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
-  "regions": ["fra1"],
-  "nodeVersion": "20.x"
+  "regions": ["fra1"]
 }
