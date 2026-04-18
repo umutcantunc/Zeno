@@ -65,3 +65,24 @@ body {
 .animate-slide-right {
   animation: slideInRight 0.3s ease-out forwards;
 }
+
+@keyframes voiceBar {
+  0%, 100% { transform: scaleY(0.3); }
+  50%       { transform: scaleY(1); }
+}
+
+.voice-bar {
+  display: inline-block;
+  width: 3px;
+  height: 20px;
+  border-radius: 2px;
+  transform-origin: center;
+  animation: voiceBar 0.8s ease-in-out infinite;
+}
+.voice-bar:nth-child(1) { animation-delay: 0ms; }
+.voice-bar:nth-child(2) { animation-delay: 100ms; }
+.voice-bar:nth-child(3) { animation-delay: 200ms; }
+.voice-bar:nth-child(4) { animation-delay: 300ms; }
+.voice-bar:nth-child(5) { animation-delay: 200ms; }
+.voice-bar:nth-child(6) { animation-delay: 100ms; }
+.voice-bar:nth-child(7) { animation-delay: 0ms; }

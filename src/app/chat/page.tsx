@@ -7,6 +7,7 @@ import ReactMarkdown from 'react-markdown'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import BottomNav from '@/components/BottomNav'
+import VoiceChat from '@/components/VoiceChat'
 import type { PersonalityMode } from '@/lib/systemPrompt'
 
 interface Message {
@@ -73,6 +74,7 @@ export default function ChatPage() {
   const [showModePopup, setShowModePopup] = useState(false)
   const [memoryToast, setMemoryToast] = useState<string | null>(null)
   const [isPremium, setIsPremium] = useState(false)
+  const [showVoice, setShowVoice] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   const modeColors = MODE_COLORS[activeMode]
@@ -163,6 +165,16 @@ export default function ChatPage() {
     setConversationId(null)
   }
 
+  function handleVoiceMessage(userText: string, assistantText: string, newConvId?: string) {
+    setMessages((prev) => [
+      ...prev,
+      { role: 'user', content: userText },
+      { role: 'assistant', content: assistantText },
+    ])
+    setShowQuickReplies(false)
+    if (newConvId) setConversationId(newConvId)
+  }
+
   async function handleSignOut() {
     await createClient().auth.signOut()
     router.push('/auth/login')
@@ -242,6 +254,19 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col h-screen bg-slate-950">
+      {/* Sesli sohbet modal */}
+      {showVoice && (
+        <VoiceChat
+          activeMode={activeMode}
+          conversationId={conversationId}
+          modeColor={modeColors.hex}
+          modeEmoji={activeModeOption.emoji}
+          modeLabel={activeModeOption.label}
+          onClose={() => setShowVoice(false)}
+          onMessageSent={handleVoiceMessage}
+        />
+      )}
+
       {/* Dalga animasyonu */}
       {waveActive && (
         <div
@@ -492,6 +517,21 @@ export default function ChatPage() {
             className="flex-1 bg-transparent text-white placeholder-slate-500 text-sm resize-none outline-none max-h-32 leading-relaxed"
             style={{ scrollbarWidth: 'none' }}
           />
+          {/* Mikrofon butonu */}
+          <button
+            onClick={() => setShowVoice(true)}
+            title="Sesli sohbet"
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 transition-colors shrink-0"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="23"/>
+              <line x1="8" y1="23" x2="16" y2="23"/>
+            </svg>
+          </button>
+
+          {/* Gönder butonu */}
           <button
             onClick={() => sendMessage(input)}
             disabled={!input.trim() || loading}

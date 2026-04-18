@@ -19,6 +19,8 @@ export default function SettingsPage() {
   const [country, setCountry] = useState('TR')
   const [notifWeekly, setNotifWeekly] = useState(false)
   const [notifTips, setNotifTips] = useState(true)
+  const [voiceEnabled, setVoiceEnabled] = useState(true)
+  const [voiceSpeed, setVoiceSpeed] = useState(1)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteInput, setDeleteInput] = useState('')
 
@@ -42,6 +44,12 @@ export default function SettingsPage() {
       }
       setLoading(false)
     })
+
+    // Ses tercihlerini localStorage'dan yükle
+    const storedVoice = localStorage.getItem('zeno_voice_enabled')
+    if (storedVoice !== null) setVoiceEnabled(storedVoice !== 'false')
+    const storedSpeed = localStorage.getItem('zeno_voice_speed')
+    if (storedSpeed !== null) setVoiceSpeed(parseFloat(storedSpeed))
   }, [router])
 
   async function handleSave() {
@@ -178,6 +186,60 @@ export default function SettingsPage() {
             >
               Görüntüle →
             </Link>
+          </div>
+        </section>
+
+        {/* Sesli Sohbet */}
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Sesli Sohbet</h2>
+          <div className="bg-slate-800/60 border border-slate-700 rounded-2xl divide-y divide-slate-700">
+            {/* Ses açık/kapalı */}
+            <div className="flex items-center justify-between p-4">
+              <div>
+                <p className="text-white text-sm font-medium">Sesli Yanıt</p>
+                <p className="text-slate-500 text-xs mt-0.5">Zeno sesli olarak yanıt versin</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !voiceEnabled
+                  setVoiceEnabled(next)
+                  localStorage.setItem('zeno_voice_enabled', String(next))
+                }}
+                className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${voiceEnabled ? 'bg-purple-600' : 'bg-slate-600'}`}
+              >
+                <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${voiceEnabled ? 'left-6' : 'left-1'}`} />
+              </button>
+            </div>
+            {/* Hız slider */}
+            <div className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white text-sm font-medium">Konuşma Hızı</p>
+                  <p className="text-slate-500 text-xs mt-0.5">Zeno&apos;nun ses okuma hızı</p>
+                </div>
+                <span className="text-sm font-semibold text-purple-400">{voiceSpeed.toFixed(1)}×</span>
+              </div>
+              <input
+                type="range"
+                min="0.8"
+                max="1.2"
+                step="0.1"
+                value={voiceSpeed}
+                disabled={!voiceEnabled}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value)
+                  setVoiceSpeed(val)
+                  localStorage.setItem('zeno_voice_speed', String(val))
+                }}
+                className="w-full accent-purple-500 disabled:opacity-40"
+              />
+              <div className="flex justify-between text-xs text-slate-600">
+                <span>Yavaş (0.8×)</span>
+                <span>Normal (1.0×)</span>
+                <span>Hızlı (1.2×)</span>
+              </div>
+            </div>
           </div>
         </section>
 
