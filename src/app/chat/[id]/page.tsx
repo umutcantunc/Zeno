@@ -337,7 +337,7 @@ export default function ConversationPage() {
           <button
             onClick={() => setShowVoice(true)}
             title="Sesli sohbet"
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 transition-colors shrink-0"
+            className="w-8 h-8 rounded-xl flex items-center justify-center bg-slate-700 hover:bg-slate-600 text-white transition-colors shrink-0"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
