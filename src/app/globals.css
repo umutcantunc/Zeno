@@ -86,3 +86,12 @@ body {
 .voice-bar:nth-child(5) { animation-delay: 200ms; }
 .voice-bar:nth-child(6) { animation-delay: 100ms; }
 .voice-bar:nth-child(7) { animation-delay: 0ms; }
+
+/* Kayıt sırasında arka plan pulse'ı */
+@keyframes recordingPulse {
+  0%, 100% { border-color: rgba(239, 68, 68, 0.3); }
+  50%       { border-color: rgba(239, 68, 68, 0.7); }
+}
+.recording-pulse {
+  animation: recordingPulse 1.4s ease-in-out infinite;
+}
