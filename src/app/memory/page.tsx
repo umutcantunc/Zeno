@@ -181,17 +181,32 @@ export default function MemoryPage() {
         {isPremium && (
           <>
             {/* Açıklama */}
-            <div className="bg-purple-500/10 border border-purple-500/20 rounded-2xl p-4 mb-6">
+            <div className="bg-purple-500/10 border border-purple-500/20 rounded-2xl p-4 mb-4">
               <div className="flex items-start gap-3">
                 <span className="text-2xl">🧠</span>
                 <div>
-                  <p className="text-purple-200 text-sm font-medium mb-1">Zeno seni şimdiye kadar şunları öğrendi</p>
+                  <p className="text-purple-200 text-sm font-medium mb-1">Zeno seni şimdiye kadar bunları öğrendi</p>
                   <p className="text-purple-300/70 text-xs leading-relaxed">
                     Sohbet boyunca öğrenilen bilgiler burada toplanır. İstediğin zaman düzenleyebilir veya silebilirsin.
                   </p>
                 </div>
               </div>
             </div>
+
+            {/* Kişilik Profili linki */}
+            <Link
+              href="/personality"
+              className="flex items-center gap-3 bg-slate-800/60 hover:bg-slate-800 border border-slate-700 hover:border-purple-500/40 rounded-2xl p-4 mb-6 transition-all duration-150 group"
+            >
+              <div className="w-9 h-9 rounded-xl bg-purple-500/15 border border-purple-500/25 flex items-center justify-center text-lg shrink-0">🧬</div>
+              <div className="flex-1 min-w-0">
+                <p className="text-white text-sm font-semibold">Kişilik Profilim</p>
+                <p className="text-slate-500 text-xs mt-0.5">Olaylar · Kişilik özellikleri · Tercihler</p>
+              </div>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-600 group-hover:text-purple-400 transition-colors shrink-0">
+                <path d="M9 18l6-6-6-6"/>
+              </svg>
+            </Link>
 
             {loading && (
               <div className="flex justify-center py-12">

@@ -66,7 +66,7 @@ export default function ChatPage() {
   const [waveActive, setWaveActive]       = useState(false)
   const [waveColor, setWaveColor]         = useState('#6D28D9')
   const [showModePopup, setShowModePopup] = useState(false)
-  const [memoryToast, setMemoryToast]     = useState<string | null>(null)
+  const [memoryToast, setMemoryToast]     = useState<{ type: string; content: string } | null>(null)
   const [isPremium, setIsPremium]         = useState(false)
   const [voiceError, setVoiceError]       = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -205,8 +205,15 @@ export default function ChatPage() {
           .then((r) => r.json()).then((d) => { if (d.suggestions?.length) setDynamicReplies(d.suggestions) }).catch(() => {})
       }
       const lastExchange = `Kullanıcı: ${text}\nZeno: ${reply}`
-      fetch('/api/memory/extract', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lastExchange }) })
-        .then((r) => r.json()).then((d) => { if (d.saved && d.content) { setMemoryToast(d.content); setTimeout(() => setMemoryToast(null), 3000) } }).catch(() => {})
+      const activeConvId = data.conversationId ?? conversationId
+      fetch('/api/memory/extract', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lastExchange, conversationId: activeConvId }) })
+        .then((r) => r.json()).then((d) => {
+          if (d.saved && d.notification) {
+            setMemoryToast(d.notification)
+            const dur = d.notification.type === 'critical' ? 5000 : d.notification.type === 'personality' ? 3000 : 2000
+            setTimeout(() => setMemoryToast(null), dur)
+          }
+        }).catch(() => {})
     } catch {
       setMessages((prev) => [...prev, { role: 'assistant', content: 'Bağlantıda bir sorun oluştu. Lütfen tekrar dene.' }])
     } finally {
@@ -449,11 +456,24 @@ export default function ChatPage() {
         )}
       </div>
 
-      {/* Hafıza toast */}
-      {memoryToast && (
+      {/* Hafıza toast — kritik olay */}
+      {memoryToast?.type === 'critical' && (
+        <div className="fixed bottom-24 right-4 z-50 max-w-[280px] bg-red-950/95 border border-red-500/50 rounded-xl px-4 py-3 shadow-2xl backdrop-blur-sm animate-slide-right">
+          <p className="text-xs text-red-400 font-semibold mb-1">🔴 Zeno bunu aklına aldı:</p>
+          <p className="text-xs text-red-200 leading-relaxed">{memoryToast.content}</p>
+        </div>
+      )}
+      {/* Hafıza toast — kişilik */}
+      {memoryToast?.type === 'personality' && (
         <div className="fixed bottom-24 right-4 z-50 max-w-[260px] bg-slate-800/95 border border-purple-500/30 rounded-xl px-4 py-3 shadow-xl backdrop-blur-sm animate-slide-right">
-          <p className="text-xs text-purple-400 font-medium mb-0.5">🧠 Zeno bunu aklına aldı:</p>
-          <p className="text-xs text-slate-300 leading-relaxed">{memoryToast}</p>
+          <p className="text-xs text-purple-400 font-medium">🧬 Zeno seni biraz daha tanıdı</p>
+        </div>
+      )}
+      {/* Hafıza toast — normal olay / tercih */}
+      {(memoryToast?.type === 'event' || memoryToast?.type === 'preference') && (
+        <div className="fixed bottom-24 right-4 z-50 max-w-[220px] bg-slate-900/80 border border-slate-700/50 rounded-xl px-3 py-2 shadow-lg backdrop-blur-sm animate-slide-right">
+          <p className="text-[10px] text-slate-500 font-medium mb-0.5">🧠 Aklıma not ettim:</p>
+          <p className="text-[11px] text-slate-500 leading-relaxed">{memoryToast.content}</p>
         </div>
       )}
 

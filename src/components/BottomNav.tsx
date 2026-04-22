@@ -35,6 +35,16 @@ const NAV_ITEMS = [
     ),
   },
   {
+    href: '/personality',
+    label: 'Profil',
+    icon: (active: boolean) => (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={active ? '2' : '1.8'} strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="8" r="4" fillOpacity={active ? 0.2 : 0}/>
+        <path d="M4 20c0-3.87 3.58-7 8-7s8 3.13 8 7"/>
+      </svg>
+    ),
+  },
+  {
     href: '/settings',
     label: 'Ayarlar',
     icon: (active: boolean) => (

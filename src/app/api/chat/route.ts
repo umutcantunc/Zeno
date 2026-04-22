@@ -51,20 +51,51 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Hafıza entegrasyonu: kullanıcının memory_items'larını sistem promptuna ekle
+    // Gelişmiş hafıza entegrasyonu
     let memoryContext = ''
     if (user) {
-      const { data: memories } = await supabase
-        .from('memory_items')
-        .select('content, category')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(10)
-      if (memories && memories.length > 0) {
-        memoryContext =
-          '\n\nKULLANICI HAKKINDA BİLDİKLERİN:\n' +
-          memories.map((m) => `- ${m.content}`).join('\n') +
-          '\nBu bilgileri konuşmada doğal olarak kullan, ama her cümlede tekrar etme.'
+      const [memoriesRes, profileRes] = await Promise.all([
+        supabase
+          .from('memory_items')
+          .select('content, memory_type, importance, event_date')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(20),
+        supabase
+          .from('personality_profiles')
+          .select('traits')
+          .eq('user_id', user.id)
+          .maybeSingle(),
+      ])
+
+      const allMemories = memoriesRes.data ?? []
+      const events      = allMemories.filter((m) => !m.memory_type || m.memory_type === 'event')
+      const preferences = allMemories.filter((m) => m.memory_type === 'preference')
+      const traits: { trait: string; evidence: string }[] = profileRes.data?.traits ?? []
+
+      if (events.length > 0 || traits.length > 0 || preferences.length > 0) {
+        memoryContext = '\n\nKULLANICI HAKKINDA BİLDİKLERİN:'
+
+        if (events.length > 0) {
+          memoryContext += '\n\nÖNEMLİ OLAYLAR:'
+          memoryContext += events.slice(0, 10).map((m) => {
+            const dateStr   = m.event_date ? `[${m.event_date}] ` : ''
+            const importStr = m.importance === 'critical' ? ' (kritik)' : m.importance === 'high' ? ' (önemli)' : ''
+            return `\n- ${dateStr}${m.content}${importStr}`
+          }).join('')
+        }
+
+        if (traits.length > 0) {
+          memoryContext += '\n\nKİŞİLİK PROFİLİ:'
+          memoryContext += traits.map((t) => `\n- ${t.trait}`).join('')
+        }
+
+        if (preferences.length > 0) {
+          memoryContext += '\n\nTERCİHLER:'
+          memoryContext += preferences.slice(0, 5).map((p) => `\n- ${p.content}`).join('')
+        }
+
+        memoryContext += '\n\nBu bilgileri konuşmada doğal olarak kullan. Sürekli tekrar etme. Sadece ilgili olduğunda referans ver.'
       }
     }
 
